@@ -3,8 +3,10 @@ services:
     name: en-claro-api
     env: python
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && PYTHONPATH=$PYTHONPATH:. gunicorn -k uvicorn.workers.UvicornWorker app.main:app
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app
     envVars:
+      - key: PYTHONPATH
+        value: backend
       - key: PYTHON_VERSION
         value: 3.9.0
       - key: CLAUDE_API_KEY
