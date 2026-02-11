@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: en-claro-api
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: CLAUDE_API_KEY
+        sync: false

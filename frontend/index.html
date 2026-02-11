@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>En Claro - Ayuda Cognitiva</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+    <div class="container" id="main-content">
+        <!-- Onboarding Screen -->
+        <div id="screen-onboarding" class="screen active">
+            <header>
+                <h1 id="i18n-onboarding-title">Bienvenido a En Claro</h1>
+                <p id="i18n-onboarding-slogan" style="font-style: italic; font-size: 1.1rem; opacity: 0.9;">Tu apoyo
+                    para navegar el mundo social
+                    con claridad.</p>
+            </header>
+
+            <div class="card onboarding-card">
+                <div class="onboarding-sections">
+                    <div class="onboarding-item">
+                        <i data-lucide="message-square" class="icon-message"></i>
+                        <div>
+                            <h3>Entiende Mensajes</h3>
+                            <p>Analiza el subtexto y la intención real detrás de las palabras.</p>
+                        </div>
+                    </div>
+                    <div class="onboarding-item">
+                        <i data-lucide="book-open" class="icon-glossary"></i>
+                        <div>
+                            <h3>Domina Expresiones</h3>
+                            <p>Descubre el origen y significado literal de frases hechas e idiomas.</p>
+                        </div>
+                    </div>
+                    <div class="onboarding-item">
+                        <i data-lucide="user-check" class="icon-roleplay"></i>
+                        <div>
+                            <h3>Práctica Segura</h3>
+                            <p>Entrena tus habilidades sociales con nuestro simulador interactivo.</p>
+                        </div>
+                    </div>
+                    <div class="onboarding-item">
+                        <i data-lucide="calendar" class="icon-routine"></i>
+                        <div>
+                            <h3>Tu Energía, Tu Ritmo</h3>
+                            <p>Organiza tu día según tu batería social disponible.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="onboarding-inclusion">
+                    <p>♾️🌈 Esta aplicación ha sido diseñada pensando en las dificultades de la <strong>comunidad
+                            autista</strong>, pero <strong>todo el mundo es bienvenido</strong> a usarla para mejorar su
+                        comunicación.</p>
+                </div>
+
+                <button id="i18n-btn-start" class="btn btn-primary btn-large" onclick="app.completeOnboarding()"
+                    style="margin-top: 20px;">
+                    Comenzar ahora <i data-lucide="arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="screen-dashboard" class="screen">
+            <header style="position: relative;">
+                <div class="settings-container" style="position: absolute; right: 0; top: 15px; z-index: 100;">
+                    <button onclick="app.toggleSettings()"
+                        style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 10px;"
+                        aria-label="Ajustes">
+                        <i data-lucide="settings"></i>
+                    </button>
+                    <div id="settings-menu" class="settings-dropdown" style="display: none;">
+                        <button onclick="app.resetOnboarding()">
+                            <i data-lucide="info"></i>
+                            <span>Bienvenido a En Claro</span>
+                        </button>
+                        <button onclick="app.toggleLanguage()">
+                            <i data-lucide="languages"></i>
+                            <span id="lang-toggle-text">English (Change)</span>
+                        </button>
+                        <button onclick="app.showScreen('profile')">
+                            <i data-lucide="user"></i>
+                            <span>Mi Cuenta</span>
+                        </button>
+                    </div>
+                </div>
+                <h1 id="i18n-title">En Claro</h1>
+                <p id="i18n-subtitle" style="font-style: italic; font-size: 0.9rem; margin-top: -5px; opacity: 0.8;">
+                    Inspirada en la
+                    experiencia neurodivergente</p>
+                <p>¿Qué quieres hacer ahora?</p>
+                <div id="backend-status"
+                    style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; font-size: 0.8rem; color: var(--secondary-color);">
+                    <span id="status-dot" style="width: 8px; height: 8px; background: #ccc; border-radius: 50%;"></span>
+                    <span id="status-text">Comprobando conexión...</span>
+                </div>
+            </header>
+            <div class="menu-list">
+                <button class="btn btn-primary btn-large menu-item" style="background: var(--grad-message); --i: 1;"
+                    onclick="app.showScreen('message')" aria-label="Entender un mensaje de texto">
+                    <i data-lucide="message-square"></i>
+                    <span id="i18n-nav-message">Entender un mensaje</span>
+                </button>
+                <button class="btn btn-primary btn-large menu-item" style="background: var(--grad-audio); --i: 2;"
+                    onclick="app.showScreen('audio')" aria-label="Entender un audio o grabación">
+                    <i data-lucide="mic"></i>
+                    <span id="i18n-nav-audio">Entender un audio</span>
+                </button>
+                <button class="btn btn-primary btn-large menu-item" style="background: var(--grad-glossary); --i: 3;"
+                    onclick="app.showScreen('glossary')" aria-label="Explicar una frase hecha o metáfora">
+                    <i data-lucide="book-open"></i>
+                    <span id="i18n-nav-glossary">Explicar una frase</span>
+                </button>
+                <button class="btn btn-primary btn-large menu-item" style="background: var(--grad-response); --i: 4;"
+                    onclick="app.showScreen('response')" aria-label="Ayuda para responder un mensaje">
+                    <i data-lucide="send"></i>
+                    <span id="i18n-nav-response">Responder un mensaje</span>
+                </button>
+                <button class="btn btn-primary btn-large menu-item" style="background: var(--grad-routine); --i: 5;"
+                    onclick="app.showScreen('routine')" aria-label="Organizar mi rutina diaria">
+                    <i data-lucide="calendar"></i>
+                    <span id="i18n-nav-routine">Organizar mi día</span>
+                </button>
+                <button class="btn btn-primary btn-large menu-item" style="background: var(--grad-roleplay); --i: 6;"
+                    onclick="app.showScreen('roleplay')" aria-label="Simulador social para practicar conversaciones">
+                    <i data-lucide="user-check"></i>
+                    <span id="i18n-nav-roleplay">Simulador social</span>
+                </button>
+                <button class="btn btn-secondary btn-large menu-item" style="--i: 7; margin-top: 10px;"
+                    onclick="app.showScreen('history')" aria-label="Ver historial de análisis guardados">
+                    <i data-lucide="history"></i>
+                    <span id="i18n-nav-history">Historial de análisis</span>
+                </button>
+                <p
+                    style="text-align: center; font-style: italic; font-size: 0.85rem; margin-top: 20px; color: var(--text-muted); opacity: 0.7;">
+                    Creado por Andrea Lancharro González</p>
+            </div>
+        </div>
+
+        <!-- Message Analysis Screen -->
+        <div id="screen-message" class="screen">
+            <header>
+                <h1>Entender un mensaje</h1>
+                <p>Pega aquí el texto que quieres analizar.</p>
+            </header>
+            <div class="card">
+                <div class="form-group">
+                    <label for="message-input">Mensaje recibido:</label>
+                    <textarea id="message-input" rows="5"
+                        placeholder="Ejemplo: un mensaje de WhatsApp o un email"></textarea>
+                </div>
+                <div style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-md);">
+                    <button class="btn btn-primary" style="flex: 2;" onclick="app.analyze('message')">
+                        <i data-lucide="search"></i> Analizar mensaje
+                    </button>
+                    <button class="btn btn-secondary"
+                        style="flex: 1; border-color: var(--grad-decoder); color: var(--text-color);"
+                        onclick="app.analyze('decoder', 'message-input')">
+                        <i data-lucide="brain-circuit"></i> Subtexto
+                    </button>
+                </div>
+                <button class="btn btn-secondary" onclick="app.showScreen('dashboard')">
+                    <i data-lucide="home"></i> Volver al inicio
+                </button>
+            </div>
+        </div>
+
+        <!-- Audio Screen -->
+        <div id="screen-audio" class="screen">
+            <header>
+                <h1>Entender un audio</h1>
+                <p>Pega aquí la transcripción del audio.</p>
+            </header>
+            <div class="card">
+                <div class="form-group">
+                    <label for="audio-input">Texto del audio:</label>
+                    <textarea id="audio-input" rows="5"
+                        placeholder="Escribe aquí o usa las opciones de abajo..."></textarea>
+                </div>
+                <div style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-md);">
+                    <button id="btn-record" class="btn btn-secondary" style="flex: 1;" onclick="app.toggleRecording()">
+                        <i data-lucide="mic"></i> Grabar Voz
+                    </button>
+                    <button id="btn-attach" class="btn btn-secondary" style="flex: 1;"
+                        onclick="document.getElementById('audio-file').click()">
+                        <i data-lucide="paperclip"></i> Adjuntar Audio
+                    </button>
+                    <input type="file" id="audio-file" accept="audio/*" style="display: none;"
+                        onchange="app.handleAudioUpload(this)">
+                </div>
+                <div id="transcription-status"
+                    style="display: none; font-size: 0.9rem; color: var(--primary-color); margin-bottom: var(--spacing-sm); text-align: center; font-weight: 600;">
+                    <span class="pulse"></span> Transcribiendo en tiempo real...
+                </div>
+                <button class="btn btn-primary" onclick="app.analyze('audio')">
+                    <i data-lucide="sparkles"></i> Entender intención
+                </button>
+                <button class="btn btn-secondary" onclick="app.showScreen('dashboard')">
+                    <i data-lucide="home"></i> Volver al inicio
+                </button>
+            </div>
+        </div>
+
+        <!-- Glossary Screen -->
+        <div id="screen-glossary" class="screen">
+            <header>
+                <h1>Explicar una frase</h1>
+                <p>Escribe una expresión o frase hecha.</p>
+            </header>
+            <div class="card">
+                <div class="form-group">
+                    <label for="glossary-input">Frase a explicar:</label>
+                    <input type="text" id="glossary-input" placeholder="Ejemplo: 'No es para tanto'">
+                </div>
+                <div style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-md);">
+                    <button class="btn btn-primary" style="flex: 2;" onclick="app.analyze('glossary')">
+                        <i data-lucide="info"></i> Explicar frase
+                    </button>
+                    <button class="btn btn-secondary"
+                        style="flex: 1; border-color: var(--grad-glossary); color: var(--text-color);"
+                        onclick="app.analyze('translator', 'glossary-input')">
+                        <i data-lucide="languages"></i> Literal
+                    </button>
+                </div>
+                <button class="btn btn-secondary" onclick="app.showScreen('dashboard')">
+                    <i data-lucide="home"></i> Volver al inicio
+                </button>
+            </div>
+        </div>
+
+        <!-- Response Screen -->
+        <div id="screen-response" class="screen">
+            <header>
+                <h1>Ayuda para responder</h1>
+                <p>Pega el mensaje que te han enviado.</p>
+            </header>
+            <div class="card">
+                <div class="form-group">
+                    <label for="response-input">Mensaje recibido:</label>
+                    <textarea id="response-input" rows="5"
+                        placeholder="Pega aquí el mensaje que quieres responder..."></textarea>
+                </div>
+                <!-- Optional: Tones would go here -->
+                <button class="btn btn-primary" onclick="app.analyze('response')">
+                    <i data-lucide="message-square"></i> Ayúdame a responder
+                </button>
+                <button class="btn btn-secondary" onclick="app.showScreen('dashboard')">
+                    <i data-lucide="home"></i> Volver al inicio
+                </button>
+            </div>
+        </div>
+
+        <!-- Routine Screen -->
+        <div id="screen-routine" class="screen">
+            <header>
+                <h1>Organizar mi día</h1>
+                <p>Cuéntame qué quieres hacer hoy.</p>
+            </header>
+            <div class="card">
+                <div class="form-group">
+                    <label>Mi Batería Social:</label>
+                    <div class="battery-selector">
+                        <div class="battery-option" onclick="app.setSocialBattery(20)" data-value="20" title="Muy baja">
+                            <i data-lucide="battery-low" style="color: var(--error-color);"></i>
+                        </div>
+                        <div class="battery-option" onclick="app.setSocialBattery(40)" data-value="40" title="Baja">
+                            <i data-lucide="battery"
+                                style="color: var(--warning-color); transform: rotate(-90deg);"></i>
+                        </div>
+                        <div class="battery-option active" onclick="app.setSocialBattery(60)" data-value="60"
+                            title="Media">
+                            <i data-lucide="battery-medium" style="color: #f6d365;"></i>
+                        </div>
+                        <div class="battery-option" onclick="app.setSocialBattery(80)" data-value="80" title="Alta">
+                            <i data-lucide="battery" style="color: #a8e063; transform: rotate(-90deg);"></i>
+                        </div>
+                        <div class="battery-option" onclick="app.setSocialBattery(100)" data-value="100"
+                            title="Muy alta">
+                            <i data-lucide="battery-full" style="color: var(--success-color);"></i>
+                        </div>
+                    </div>
+                    <input type="hidden" id="social-battery-value" value="60">
+                </div>
+                <div class="form-group">
+                    <label for="routine-input">Tus actividades y preferencias:</label>
+                    <textarea id="routine-input" rows="5"
+                        placeholder="Ejemplo: Tengo que ir al médico a las 10, quiero leer por la tarde,..."></textarea>
+                </div>
+                <div style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-md);">
+                    <button id="btn-record-routine" class="btn btn-secondary" style="flex: 1;"
+                        onclick="app.toggleRecording('routine')">
+                        <i data-lucide="mic"></i> Grabar Voz
+                    </button>
+                    <button id="btn-attach-routine" class="btn btn-secondary" style="flex: 1;"
+                        onclick="document.getElementById('audio-file-routine').click()">
+                        <i data-lucide="paperclip"></i> Adjuntar Audio
+                    </button>
+                    <input type="file" id="audio-file-routine" accept="audio/*" style="display: none;"
+                        onchange="app.handleAudioUpload(this, 'routine')">
+                </div>
+                <div id="transcription-status-routine"
+                    style="display: none; font-size: 0.9rem; color: var(--primary-color); margin-bottom: var(--spacing-sm); text-align: center; font-weight: 600;">
+                    <span class="pulse"></span> Transcribiendo rutina...
+                </div>
+                <button class="btn btn-primary" onclick="app.analyze('routine')">
+                    <i data-lucide="clipboard-list"></i> Crear rutina
+                </button>
+                <button class="btn btn-secondary" onclick="app.showScreen('dashboard')">
+                    <i data-lucide="home"></i> Volver al inicio
+                </button>
+            </div>
+        </div>
+
+        <!-- Roleplay Screen -->
+        <div id="screen-roleplay" class="screen">
+            <header>
+                <h1>Simulador Social</h1>
+                <p>Practica conversaciones en un entorno seguro.</p>
+            </header>
+
+            <div id="roleplay-selector" class="card">
+                <h3 style="margin-bottom: var(--spacing-md); text-align: center;">Elige un escenario:</h3>
+                <div class="scenario-grid">
+                    <div class="scenario-card" onclick="app.startRoleplay('Entrevista de Trabajo')">
+                        <i data-lucide="briefcase"></i>
+                        <span>Entrevista</span>
+                    </div>
+                    <div class="scenario-card" onclick="app.startRoleplay('Cita Médica')">
+                        <i data-lucide="stethoscopes"></i>
+                        <span>Médico</span>
+                    </div>
+                    <div class="scenario-card" onclick="app.startRoleplay('Encuentro Social')">
+                        <i data-lucide="coffee"></i>
+                        <span>Cita/Amigos</span>
+                    </div>
+                    <div class="scenario-card" onclick="app.startRoleplay('Charla Casual')">
+                        <i data-lucide="users"></i>
+                        <span>Vecino/Casual</span>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="app.showScreen('dashboard')">
+                    <i data-lucide="home"></i> Volver al inicio
+                </button>
+            </div>
+
+            <div id="roleplay-session" class="card" style="display: none;">
+                <div id="chat-container">
+                    <!-- Messages will appear here -->
+                </div>
+                <div class="form-group" style="display: flex; gap: 8px;">
+                    <input type="text" id="roleplay-input" placeholder="Escribe tu respuesta..."
+                        onkeypress="if(event.key === 'Enter') app.sendRoleplayMessage()">
+                    <button class="btn btn-primary" style="width: auto; margin-bottom: 0;"
+                        onclick="app.sendRoleplayMessage()">
+                        <i data-lucide="send"></i>
+                    </button>
+                </div>
+                <button class="btn btn-secondary" onclick="app.endRoleplay()"
+                    style="color: var(--warning-color); border-color: var(--warning-color);">
+                    <i data-lucide="check-circle"></i> Finalizar y obtener feedback
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="screen-loading" class="screen">
+        <div class="card loader">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line short"></div>
+            <div class="typing-ind" style="margin-top: 20px;">
+                <span class="pulse"></span>
+                <span id="loading-text" style="font-weight: 600; color: var(--primary-color);">Analizando...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="screen-result" class="screen">
+        <header>
+            <h1>Resultado</h1>
+        </header>
+        <div id="result-content" class="card">
+            <div id="result-skeleton" style="display: none;">
+                <div class="skeleton-title"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line short"></div>
+            </div>
+            <div id="result-text" class="markdown-content"></div>
+        </div>
+        <div class="nav-footer">
+            <button id="btn-result-action" class="btn btn-primary" style="display: none;">
+                <i data-lucide="sparkles"></i> Hacer algo más
+            </button>
+            <button class="btn btn-secondary" onclick="app.showScreen('dashboard')">
+                <i data-lucide="home"></i> Volver al inicio
+            </button>
+        </div>
+    </div>
+
+    <!-- History Screen -->
+    <div id="screen-history" class="screen">
+        <header>
+            <h1>Historial</h1>
+            <p>Tus análisis recientes guardados localmente.</p>
+        </header>
+        <div id="history-list">
+            <!-- History items injected here -->
+        </div>
+        <div class="nav-footer">
+            <button class="btn btn-secondary" onclick="app.clearHistory()"
+                style="color: var(--error-color); border-color: var(--error-color);">
+                <i data-lucide="trash-2"></i> Borrar Historial
+            </button>
+            <button class="btn btn-secondary" onclick="app.resetOnboarding()"
+                style="color: var(--warning-color); border-color: var(--warning-color);">
+                <i data-lucide="refresh-cw"></i> Reiniciar Bienvenida
+            </button>
+            <button class="btn btn-primary" onclick="app.showScreen('dashboard')">
+                <i data-lucide="home"></i> Volver al inicio
+            </button>
+        </div>
+    </div>
+
+    <!-- Profile Screen -->
+    <div id="screen-profile" class="screen">
+        <header>
+            <h1>Mi Cuenta</h1>
+            <p>Personaliza tu experiencia en En Claro.</p>
+        </header>
+        <div class="card profile-card">
+            <div class="avatar-section">
+                <div id="current-avatar" class="avatar-large">👤</div>
+                <button class="btn btn-secondary btn-small" onclick="app.toggleAvatarPicker()">
+                    Cambiar Avatar
+                </button>
+                <div id="avatar-picker" class="avatar-grid" style="display: none;">
+                    <span onclick="app.selectAvatar('👤')">👤</span>
+                    <span onclick="app.selectAvatar('🧠')">🧠</span>
+                    <span onclick="app.selectAvatar('✨')">✨</span>
+                    <span onclick="app.selectAvatar('🌈')">🌈</span>
+                    <span onclick="app.selectAvatar('🎨')">🎨</span>
+                    <span onclick="app.selectAvatar('🚀')">🚀</span>
+                    <span onclick="app.selectAvatar('🐾')">🐾</span>
+                    <span onclick="app.selectAvatar('💡')">💡</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="profile-name">Nombre:</label>
+                <input type="text" id="profile-name" placeholder="Tu nombre">
+            </div>
+            <div class="form-group">
+                <label for="profile-surname">Apellidos:</label>
+                <input type="text" id="profile-surname" placeholder="Tus apellidos">
+            </div>
+            <div class="form-group">
+                <label for="profile-email">Email:</label>
+                <input type="email" id="profile-email" placeholder="tu@email.com">
+            </div>
+
+            <button class="btn btn-google" onclick="app.connectGoogle()">
+                <i data-lucide="log-in"></i> Conectar con Google
+            </button>
+
+            <div style="margin-top: 30px; display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="app.saveProfile()">
+                    Guardar Cambios
+                </button>
+                <button class="btn btn-secondary" onclick="app.showScreen('dashboard')">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Dialog (Simple) -->
+    <div id="screen-error" class="screen">
+        <div class="card" style="border-top: 5px solid var(--error-color);">
+            <h3>Algo no ha salido bien</h3>
+            <p id="error-message">No se pudo realizar el análisis. Por favor, verifica que el backend esté corriendo
+                y que hayas configurado tu CLAUDE_API_KEY en el archivo .env.</p>
+            <button class="btn btn-primary" onclick="app.showScreen('dashboard')"
+                style="margin-top: var(--spacing-md);">Entendido</button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
