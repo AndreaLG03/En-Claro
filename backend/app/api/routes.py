@@ -1,8 +1,8 @@
 import logging
 from fastapi import APIRouter, HTTPException
-from app.models.schemas import TextRequest, AIResponse
-from app.services.prompt_router import get_prompts
-from app.services.claude_client import call_claude
+from ..models.schemas import TextRequest, AIResponse
+from ..services.prompt_router import get_prompts
+from ..services.claude_client import call_claude
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

@@ -6,9 +6,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 
-from app.api.routes import router
-from app.services.claude_client import close_client
-from app.utils.logging_config import setup_logging
+from .api.routes import router
+from .services.claude_client import close_client
+from .utils.logging_config import setup_logging
 
 # Professional logging setup
 setup_logging()
