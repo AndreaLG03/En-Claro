@@ -1,7 +1,7 @@
 import httpx
 import logging
 from typing import Optional
-from app.config import settings
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 CLAUDE_URL = "https://api.anthropic.com/v1/messages"

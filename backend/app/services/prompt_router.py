@@ -1,7 +1,7 @@
 from pathlib import Path
 import logging
 from typing import Tuple, Optional
-from app.models.enums import AnalysisModule
+from ..models.enums import AnalysisModule
 
 logger = logging.getLogger(__name__)
 
