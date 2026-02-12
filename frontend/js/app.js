@@ -1052,12 +1052,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     app.loadProfile();
+    // Always show onboarding
+    app.showScreen('onboarding');
+    // app.checkAuth is called to load profile in background, but user lands on onboarding
     app.checkAuth();
-    const onboardingComplete = localStorage.getItem('enclaro_onboarding_complete');
-    if (onboardingComplete === 'true') {
-        app.showScreen('dashboard');
-    } else {
-        app.showScreen('onboarding');
-    }
     app.checkBackendStatus();
 });
