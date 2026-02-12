@@ -1003,17 +1003,54 @@ const app = {
         }
 
         const profileData = localStorage.getItem('enclaro_profile');
+        console.log('DEBUG: Loaded profile data:', profileData);
+
         if (profileData) {
             const profile = JSON.parse(profileData);
-            if (document.getElementById('profile-name')) document.getElementById('profile-name').value = profile.name || '';
-            if (document.getElementById('profile-surname')) document.getElementById('profile-surname').value = profile.surname || '';
-            if (document.getElementById('profile-email')) document.getElementById('profile-email').value = profile.email || '';
-            if (document.getElementById('profile-gender')) document.getElementById('profile-gender').value = profile.gender || '';
 
-            if (document.getElementById('current-avatar')) document.getElementById('current-avatar').textContent = profile.avatar || '👤';
+            // Helper to safely set value
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = val || '';
+                    console.log(`DEBUG: Set ${id} to "${val}"`);
+                } else {
+                    console.warn(`DEBUG: Element ${id} not found`);
+                }
+            };
+
+            setVal('profile-name', profile.name);
+            setVal('profile-surname', profile.surname);
+            setVal('profile-email', profile.email);
+            setVal('profile-gender', profile.gender);
+
+            const avatarEl = document.getElementById('current-avatar');
+            if (avatarEl) {
+                avatarEl.textContent = profile.avatar || '👤';
+            }
 
             app.updatePersonalizedText(profile);
         }
+    },
+
+    toggleAvatarPicker: () => {
+        const picker = document.getElementById('avatar-picker');
+        if (picker) {
+            picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
+        }
+    },
+
+    selectAvatar: (avatar) => {
+        const avatarEl = document.getElementById('current-avatar');
+        if (avatarEl) {
+            avatarEl.textContent = avatar;
+        }
+        // Hide picker after selection
+        const picker = document.getElementById('avatar-picker');
+        if (picker) picker.style.display = 'none';
+
+        // Auto-save logic if in profile screen? 
+        // Better to wait for explicit save, but let's update local state visual
     },
 
     checkAuth: async () => {
