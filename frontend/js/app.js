@@ -1039,22 +1039,89 @@ const app = {
         } catch (e) {
             console.log('Not logged in or auth check failed', e);
         }
-    }
+    },
+
+    currentRegAvatar: '👤',
+
+    selectRegAvatar: (avatar) => {
+        app.currentRegAvatar = avatar;
+        document.getElementById('reg-avatar-display').textContent = avatar;
+    },
+
+    completeRegistration: () => {
+        const name = document.getElementById('reg-name').value.trim();
+        const surname = document.getElementById('reg-surname').value.trim();
+        const gender = document.getElementById('reg-gender').value;
+
+        if (!name || !gender) {
+            app.showToast('Por favor, introduce tu nombre y selecciona un género.', 'error');
+            return;
+        }
+
+        const profile = {
+            name: name,
+            surname: surname,
+            gender: gender,
+            avatar: app.currentRegAvatar
+        };
+
+        localStorage.setItem('enclaro_profile', JSON.stringify(profile));
+        app.updatePersonalizedText(profile);
+        app.showScreen('onboarding');
+        app.showToast('¡Perfil creado con éxito!', 'success');
+    },
+
+    updatePersonalizedText: (profile) => {
+        if (!profile) return;
+
+        // Welcome Text Logic
+        let welcomeWord = 'Bienvenido';
+        if (profile.gender === 'femenino') welcomeWord = 'Bienvenida';
+        else if (profile.gender === 'nobinario' || profile.gender === 'otro') welcomeWord = 'Bienvenide';
+
+        const welcomeText = `${welcomeWord} a En Claro`;
+
+        // Update Dashboard Welcome (Settings Menu)
+        // Note: The settings menu button text might need an ID or strictly targeting
+        const settingsWelcome = document.querySelector('#settings-menu button:first-child span');
+        if (settingsWelcome) settingsWelcome.textContent = welcomeText;
+
+        // Update Onboarding Title
+        const onboardingTitle = document.getElementById('i18n-onboarding-title');
+        if (onboardingTitle) onboardingTitle.textContent = welcomeText;
+
+        // Update Dashboard Prompt
+        // "Qué quieres hacer ahora, [Nombre]?"
+        // We need to target the paragraph element in dashboard header. 
+        // It currently has no ID, let's add logic to find it or standardise it.
+        // The Prompt is the 3rd child of header: h1, p (subtitle), p (prompt)
+        const dashboardHeader = document.querySelector('#screen-dashboard header');
+        if (dashboardHeader) {
+            const promptPara = dashboardHeader.querySelectorAll('p')[1]; // 2nd paragraph
+            if (promptPara) {
+                promptPara.textContent = `¿Qué quieres hacer ahora, ${profile.name}?`;
+            }
+        }
+    },
+
+    // ... existing functions ...
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const error = urlParams.get('error');
-    if (error) {
-        app.showToast(`Error de conexión: ${error}`, 'error');
-        // Clean URL
-        window.history.replaceState({}, document.title, window.location.pathname);
+    // ... existing URL param logic ...
+
+    const profileData = localStorage.getItem('enclaro_profile');
+    if (profileData) {
+        const profile = JSON.parse(profileData);
+        app.updatePersonalizedText(profile);
+        // Always show onboarding as requested previously
+        app.showScreen('onboarding');
+    } else {
+        // No profile, show registration
+        app.showScreen('registration');
     }
 
     app.loadProfile();
-    // Always show onboarding
-    app.showScreen('onboarding');
-    // app.checkAuth is called to load profile in background, but user lands on onboarding
     app.checkAuth();
     app.checkBackendStatus();
 });

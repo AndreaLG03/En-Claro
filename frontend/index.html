@@ -17,6 +17,57 @@
 <body>
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
     <div class="container" id="main-content">
+        <!-- Registration Screen -->
+        <div id="screen-registration" class="screen">
+            <header>
+                <h1>Crea tu perfil</h1>
+                <p>Para personalizar tu experiencia en En Claro.</p>
+            </header>
+            <div class="card profile-card">
+                <div class="avatar-section">
+                    <div id="reg-avatar-display" class="avatar-large">👤</div>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 10px;">Elige tu avatar:</p>
+                    <div class="avatar-grid">
+                        <span onclick="app.selectRegAvatar('👤')">👤</span>
+                        <span onclick="app.selectRegAvatar('👩')">👩</span>
+                        <span onclick="app.selectRegAvatar('👨')">👨</span>
+                        <span onclick="app.selectRegAvatar('🧑')">🧑</span>
+                        <span onclick="app.selectRegAvatar('🧠')">🧠</span>
+                        <span onclick="app.selectRegAvatar('✨')">✨</span>
+                        <span onclick="app.selectRegAvatar('🌈')">🌈</span>
+                        <span onclick="app.selectRegAvatar('🎨')">🎨</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="reg-name">Nombre:</label>
+                    <input type="text" id="reg-name" placeholder="¿Cómo te llamas?">
+                </div>
+                <div class="form-group">
+                    <label for="reg-surname">Apellidos (opcional):</label>
+                    <input type="text" id="reg-surname" placeholder="Tus apellidos">
+                </div>
+                <div class="form-group">
+                    <label for="reg-gender">Género:</label>
+                    <select id="reg-gender"
+                        style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--card-bg); color: var(--text-color);">
+                        <option value="" disabled selected>Selecciona una opción</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="femenino">Femenino</option>
+                        <option value="nobinario">No binario</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">
+                        Usaremos esto para dirigirnos a ti (Bienvenido/a/e).
+                    </p>
+                </div>
+
+                <button class="btn btn-primary" onclick="app.completeRegistration()" style="margin-top: 20px;">
+                    Continuar <i data-lucide="arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
         <!-- Onboarding Screen -->
         <div id="screen-onboarding" class="screen active">
             <header>
