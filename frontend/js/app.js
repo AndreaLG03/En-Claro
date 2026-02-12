@@ -973,10 +973,8 @@ const app = {
     },
 
     connectGoogle: () => {
-        app.showToast('Conectando con Google...', 'info');
-        setTimeout(() => {
-            app.showToast('Simulación de Google Login completada.', 'success');
-        }, 1500);
+        // Redirect to backend auth endpoint
+        window.location.href = `${app.apiUrl.replace('/api', '')}/auth/login`;
     },
 
     saveProfile: () => {
@@ -1009,11 +1007,52 @@ const app = {
             if (document.getElementById('profile-email')) document.getElementById('profile-email').value = profile.email || '';
             if (document.getElementById('current-avatar')) document.getElementById('current-avatar').textContent = profile.avatar || '👤';
         }
+    },
+
+    checkAuth: async () => {
+        try {
+            const response = await fetch(`${app.apiUrl.replace('/api', '')}/auth/me`);
+            if (response.ok) {
+                const user = await response.json();
+                if (user) {
+                    // Update profile UI
+                    if (document.getElementById('profile-name')) document.getElementById('profile-name').value = user.name || '';
+                    if (document.getElementById('profile-email')) document.getElementById('profile-email').value = user.email || '';
+                    if (document.getElementById('current-avatar')) document.getElementById('current-avatar').textContent = user.picture ? '🖼️' : '👤'; // Simple indicator
+
+                    // Specific logic for Google Avatar if available
+                    if (user.picture) {
+                        const avatarEl = document.getElementById('current-avatar');
+                        if (avatarEl) {
+                            avatarEl.innerHTML = `<img src="${user.picture}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+                        }
+                    }
+
+                    // Save to local storage for persistence handling in UI
+                    localStorage.setItem('enclaro_profile', JSON.stringify({
+                        name: user.name,
+                        email: user.email,
+                        avatar: user.picture || '👤'
+                    }));
+                }
+            }
+        } catch (e) {
+            console.log('Not logged in or auth check failed', e);
+        }
     }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    if (error) {
+        app.showToast(`Error de conexión: ${error}`, 'error');
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     app.loadProfile();
+    app.checkAuth();
     const onboardingComplete = localStorage.getItem('enclaro_onboarding_complete');
     if (onboardingComplete === 'true') {
         app.showScreen('dashboard');

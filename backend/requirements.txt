@@ -9,3 +9,5 @@ pytest-asyncio
 # Produccion
 gunicorn
 anthropic
+authlib
+itsdangerous

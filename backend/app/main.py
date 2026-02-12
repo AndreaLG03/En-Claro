@@ -10,6 +10,10 @@ from .api.routes import router
 from .services.claude_client import close_client
 from .utils.logging_config import setup_logging
 
+from starlette.middleware.sessions import SessionMiddleware
+from .api.auth import router as auth_router
+from .config import settings
+
 # Professional logging setup
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -23,25 +27,59 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down En Claro API...")
     await close_client()
 
+# Use relative path for production (Render) - Backend serves Frontend
+# We need to know where the frontend files are.
+# In production structure: /opt/render/project/src/frontend
+# Local structure: ../frontend (relative to backend/app/main.py)
+
+# Robustly find the frontend directory
+current_dir = Path(__file__).resolve().parent # backend/app
+backend_dir = current_dir.parent # backend
+project_root = backend_dir.parent # Antigravity (or root in Render)
+
+# Try standard location first
+frontend_path = project_root / "frontend"
+
+if not frontend_path.exists():
+    # Fallback for different structures or Docker
+    logger.warning(f"Frontend not found at {frontend_path}, trying alternative...")
+    # Check if we are in 'src' (Render sometimes)
+    frontend_path = Path("/opt/render/project/src/frontend")
+
+logger.info(f"Serving frontend from: {frontend_path}")
+
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
+# ... (rest of imports)
+
+# ...
+
 app = FastAPI(
-    title="En Claro",
+    title="En Claro API",
     description="App de apoyo cognitivo para personas autistas",
     version="0.1.0",
     lifespan=lifespan
 )
 
+# Trust Proxy Headers (for Render SSL termination)
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
+# Add Session Middleware for OAuth
+# https_only=True ensures cookies are only sent over HTTPS (critical for Production)
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY, https_only=settings.RENDER)
+
 # Configure CORS
-# Note: allow_credentials=False for wildcard origins as per standard security
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=["*"], # Allow all origins for dev/production flexibility
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # API routes
 app.include_router(router, prefix="/api")
+app.include_router(auth_router, prefix="/auth")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
