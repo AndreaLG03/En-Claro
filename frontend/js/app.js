@@ -981,10 +981,14 @@ const app = {
         const name = document.getElementById('profile-name').value;
         const surname = document.getElementById('profile-surname').value;
         const email = document.getElementById('profile-email').value;
+        const gender = document.getElementById('profile-gender').value;
         const avatar = document.getElementById('current-avatar').textContent;
 
-        const profile = { name, surname, email, avatar };
+        const profile = { name, surname, email, gender, avatar };
         localStorage.setItem('enclaro_profile', JSON.stringify(profile));
+
+        // Update UI immediately
+        app.updatePersonalizedText(profile);
 
         app.showToast(app.currentLanguage === 'es' ? 'Perfil guardado con éxito' : 'Profile saved successfully', 'success');
         app.showScreen('dashboard');
@@ -998,14 +1002,17 @@ const app = {
             app.updateUI();
         }
 
-        // Load Profile
-        const savedProfile = localStorage.getItem('enclaro_profile');
-        if (savedProfile) {
-            const profile = JSON.parse(savedProfile);
+        const profileData = localStorage.getItem('enclaro_profile');
+        if (profileData) {
+            const profile = JSON.parse(profileData);
             if (document.getElementById('profile-name')) document.getElementById('profile-name').value = profile.name || '';
             if (document.getElementById('profile-surname')) document.getElementById('profile-surname').value = profile.surname || '';
             if (document.getElementById('profile-email')) document.getElementById('profile-email').value = profile.email || '';
+            if (document.getElementById('profile-gender')) document.getElementById('profile-gender').value = profile.gender || '';
+
             if (document.getElementById('current-avatar')) document.getElementById('current-avatar').textContent = profile.avatar || '👤';
+
+            app.updatePersonalizedText(profile);
         }
     },
 
@@ -1018,9 +1025,9 @@ const app = {
                     // Update profile UI
                     if (document.getElementById('profile-name')) document.getElementById('profile-name').value = user.name || '';
                     if (document.getElementById('profile-email')) document.getElementById('profile-email').value = user.email || '';
-                    if (document.getElementById('current-avatar')) document.getElementById('current-avatar').textContent = user.picture ? '🖼️' : '👤'; // Simple indicator
+                    if (document.getElementById('current-avatar')) document.getElementById('current-avatar').textContent = user.picture ? '🖼️' : '👤';
 
-                    // Specific logic for Google Avatar if available
+                    // Specific logic for Google Avatar
                     if (user.picture) {
                         const avatarEl = document.getElementById('current-avatar');
                         if (avatarEl) {
@@ -1028,12 +1035,20 @@ const app = {
                         }
                     }
 
-                    // Save to local storage for persistence handling in UI
-                    localStorage.setItem('enclaro_profile', JSON.stringify({
+                    // Save to local storage (merging with existing gender if possible, but for now simple overwrite or just update known fields)
+                    // We should preserve existing gender if it exists in local storage but not in Google
+                    const existingData = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+
+                    const newProfile = {
                         name: user.name,
                         email: user.email,
-                        avatar: user.picture || '👤'
-                    }));
+                        avatar: user.picture || '👤',
+                        gender: existingData.gender || '', // Preserve gender
+                        surname: existingData.surname || '' // Preserve surname
+                    };
+
+                    localStorage.setItem('enclaro_profile', JSON.stringify(newProfile));
+                    app.updatePersonalizedText(newProfile);
                 }
             }
         } catch (e) {
@@ -1082,7 +1097,6 @@ const app = {
         const welcomeText = `${welcomeWord} a En Claro`;
 
         // Update Dashboard Welcome (Settings Menu)
-        // Note: The settings menu button text might need an ID or strictly targeting
         const settingsWelcome = document.querySelector('#settings-menu button:first-child span');
         if (settingsWelcome) settingsWelcome.textContent = welcomeText;
 
@@ -1091,10 +1105,6 @@ const app = {
         if (onboardingTitle) onboardingTitle.textContent = welcomeText;
 
         // Update Dashboard Prompt
-        // "Qué quieres hacer ahora, [Nombre]?"
-        // We need to target the paragraph element in dashboard header. 
-        // It currently has no ID, let's add logic to find it or standardise it.
-        // The Prompt is the 3rd child of header: h1, p (subtitle), p (prompt)
         const dashboardHeader = document.querySelector('#screen-dashboard header');
         if (dashboardHeader) {
             const promptPara = dashboardHeader.querySelectorAll('p')[1]; // 2nd paragraph
@@ -1102,22 +1112,23 @@ const app = {
                 promptPara.textContent = `¿Qué quieres hacer ahora, ${profile.name}?`;
             }
         }
-    },
-
-    // ... existing functions ...
+    }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ... existing URL param logic ...
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    if (error) {
+        app.showToast(`Error de conexión: ${error}`, 'error');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
     const profileData = localStorage.getItem('enclaro_profile');
     if (profileData) {
         const profile = JSON.parse(profileData);
         app.updatePersonalizedText(profile);
-        // Always show onboarding as requested previously
         app.showScreen('onboarding');
     } else {
-        // No profile, show registration
         app.showScreen('registration');
     }
 
