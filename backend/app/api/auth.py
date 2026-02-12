@@ -44,12 +44,7 @@ async def login(request: Request):
 @router.get('/callback')
 async def auth_callback(request: Request):
     try:
-        # Determine redirect URI (same logic as login)
-        redirect_uri = request.url_for('auth_callback')
-        if 'onrender.com' in str(redirect_uri) or settings.RENDER:
-            redirect_uri = str(redirect_uri).replace('http://', 'https://')
-            
-        token = await oauth.google.authorize_access_token(request, redirect_uri=redirect_uri)
+        token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
         if not user_info:
              # Sometimes userinfo is inside 'id_token' claims
