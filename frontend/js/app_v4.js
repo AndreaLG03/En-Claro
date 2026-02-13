@@ -1394,8 +1394,5 @@ document.addEventListener('DOMContentLoaded', () => {
     app.checkAuth();
     app.checkBackendStatus();
 
-    console.log('App Initialized - Version: Personalization Fixed v3');
-    setTimeout(() => {
-        app.showToast('Versión actualizada correctamente (v3)', 'success');
-    }, 1000);
+    console.log('App Initialized');
 });
