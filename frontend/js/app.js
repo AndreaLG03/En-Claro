@@ -761,14 +761,26 @@ const app = {
                 })
             });
 
-            if (!response.ok) throw new Error('Error en el simulador');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const detailedError = errorData.detail || 'Error en el simulador';
+                throw new Error(`${response.status}: ${detailedError}`);
+            }
 
             const data = await response.json();
             app.addChatMessage(data.result, 'ai');
             app.roleplayHistory.push({ role: 'assistant', content: data.result });
 
         } catch (error) {
-            app.showToast('No se pudo conectar con el simulador.', 'error');
+            console.error('Roleplay Error:', error);
+            // Try to show specific error from backend if available
+            let errorMsg = 'No se pudo conectar con el simulador.';
+
+            if (error.message.includes('401')) errorMsg = 'Error de autenticación: Verifica tu API KEY.';
+            if (error.message.includes('500')) errorMsg = 'Error interno del servidor. Intenta más tarde.';
+
+            app.showToast(errorMsg, 'error');
+            app.addChatMessage(`Error: ${errorMsg}`, 'system');
         }
     },
 
