@@ -54,4 +54,7 @@ def get_prompts(module: str, text: str) -> Tuple[str, str]:
     system_prompt = load_prompt(PROMPT_MAPPING[module_enum])
     user_template = USER_PROMPT_TEMPLATES.get(module_enum, "{text}")
     
-    return system_prompt, user_template.format(text=text)
+    # Use replace to avoid Issues with curly braces in the input text (e.g. JSON)
+    formatted_user_prompt = user_template.replace("{text}", text)
+    
+    return system_prompt, formatted_user_prompt
