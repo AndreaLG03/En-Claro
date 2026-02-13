@@ -801,27 +801,76 @@ const app = {
         utterance.lang = langCode;
 
         // Natural prosody adjustments
-        utterance.rate = 0.95; // Slightly slower for better clarity
+        utterance.rate = 0.95;
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
 
-        // Intelligent voice selection
-        const voices = window.speechSynthesis.getVoices();
+        // Detect Gender from Name or Context
+        const gender = app.detectGender(text);
 
-        // Filter voices for the current language
-        const availableVoices = voices.filter(v => v.lang.startsWith(app.currentLanguage));
-
-        // Prefer "Natural", "Google", or "Microsoft" high-quality voices
-        let bestVoice = availableVoices.find(v => v.name.includes('Natural')) ||
-            availableVoices.find(v => v.name.includes('Google')) ||
-            availableVoices.find(v => v.name.includes('Microsoft')) ||
-            availableVoices[0]; // Fallback to first available for that lang
-
-        if (bestVoice) {
-            utterance.voice = bestVoice;
+        // Select best voice based on gender
+        const voice = app.getVoice(gender, langCode);
+        if (voice) {
+            utterance.voice = voice;
+            // console.log(`DEBUG: Speaking with ${voice.name} (${gender})`);
         }
 
         window.speechSynthesis.speak(utterance);
+    },
+
+    /**
+     * Helper to detect gender from text cues
+     */
+    detectGender: (text) => {
+        const lower = text.toLowerCase();
+
+        // Explicit Names or cues
+        if (lower.includes('marcos') || lower.includes('juan') || lower.includes('pedro') || lower.includes('doctor') || lower.includes('papá') || lower.includes('señor') || lower.includes('hombre')) return 'male';
+        if (lower.includes('sarah') || lower.includes('maría') || lower.includes('lucía') || lower.includes('doctora') || lower.includes('mamá') || lower.includes('señora') || lower.includes('mujer')) return 'female';
+
+        // Contextual regex for "Soy ..."
+        if (/soy (un )?chico/.test(lower)) return 'male';
+        if (/soy (una )?chica/.test(lower)) return 'female';
+
+        return 'neutral';
+    },
+
+    /**
+     * Get best voice for gender
+     */
+    getVoice: (gender, lang) => {
+        const voices = window.speechSynthesis.getVoices();
+        const available = voices.filter(v => v.lang.startsWith(lang.split('-')[0])); // loosely match lang 'es'
+
+        let candidates = available;
+
+        if (gender === 'male') {
+            // Prioritize known male voices
+            candidates = available.filter(v =>
+                v.name.includes('Pablo') ||
+                v.name.includes('Raul') ||
+                v.name.includes('Stefan') ||
+                v.name.includes('Male') ||
+                v.name.toLowerCase().includes('hombre')
+            );
+        } else if (gender === 'female') {
+            // Prioritize known female voices
+            candidates = available.filter(v =>
+                v.name.includes('Helena') ||
+                v.name.includes('Laura') ||
+                v.name.includes('Sabina') ||
+                v.name.includes('Female') ||
+                v.name.toLowerCase().includes('mujer')
+            );
+        }
+
+        // If no specific gender match, fallback to "Natural" or "Google" or just first available
+        if (candidates.length === 0) candidates = available;
+
+        return candidates.find(v => v.name.includes('Natural')) ||
+            candidates.find(v => v.name.includes('Google')) ||
+            candidates.find(v => v.name.includes('Microsoft')) ||
+            candidates[0];
     },
 
     endRoleplay: async () => {
