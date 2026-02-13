@@ -3,6 +3,17 @@
  */
 
 const app = {
+    // Global Error Handler for robust debugging
+    initErrorHandler: () => {
+        window.onerror = function (msg, url, line, col, error) {
+            // Prevent infinite loops in error reporting
+            if (msg.includes('Script error')) return;
+
+            const errorMsg = `Error Critical JS: ${msg}\nLine: ${line}`;
+            console.error(errorMsg);
+            alert(errorMsg); // Force visible feedback for the user
+        };
+    },
     // Determine Backend Base URL
     // If running on localhost but NOT port 8000, assume backend is on 8000
     getBackendUrl: () => {
@@ -1362,6 +1373,8 @@ endRoleplay: async () => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    app.initErrorHandler();
+
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
     if (error) {
