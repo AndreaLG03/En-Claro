@@ -13,17 +13,26 @@ async def analyze_text(request: TextRequest):
     Analyzes text using the specified module.
     Delegates prompt formatting to the prompt_router and calls Claude API.
     """
+    MAX_INPUT_LENGTH = 15000 # Increased for roleplay history
+    if len(request.text) > MAX_INPUT_LENGTH:
+        raise HTTPException(status_code=400, detail=f"El texto es demasiado largo (máx {MAX_INPUT_LENGTH} caracteres).")
+
     try:
-        # Get formatted prompts
-        system_prompt, user_prompt = get_prompts(request.module, request.text)
+        # Get appropriate prompts based on module, injecting profile/context
+        system_prompt, user_prompt = get_prompts(
+            request.module, 
+            request.text,
+            user_profile=request.user_profile,
+            scenario_context=request.scenario_context
+        )
         
         # Call AI service
-        result = await call_claude(
+        result_text = await call_claude(
             system_prompt=system_prompt,
             user_prompt=user_prompt
         )
 
-        return AIResponse(result=result)
+        return AIResponse(result=result_text)
 
     except ValueError as ve:
         logger.warning(f"Validation error in analyze_text: {str(ve)}")
