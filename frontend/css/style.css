@@ -798,7 +798,59 @@ tr:hover td {
     font-size: 0.95rem;
     color: var(--secondary-color);
     line-height: 1.5;
-    margin: 0;
+}
+
+/* Privacy Policy & Legal Styles */
+#privacy-content h3 {
+    color: var(--primary-color);
+    margin-top: 25px;
+    margin-bottom: 10px;
+    font-size: 1.15rem;
+}
+
+#privacy-content p {
+    margin-bottom: 15px;
+    line-height: 1.6;
+    color: var(--text-color);
+}
+
+.custom-checkbox input[type="checkbox"] {
+    position: relative;
+    cursor: pointer;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--primary-color);
+    border-radius: 6px;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    transition: all 0.3s;
+    background: white;
+}
+
+.custom-checkbox input[type="checkbox"]:checked {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.custom-checkbox input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 6px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+#btn-accept-legal:disabled {
+    background: #e0e0e0;
+    color: #a0a0a0;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
 }
 
 .onboarding-inclusion strong {

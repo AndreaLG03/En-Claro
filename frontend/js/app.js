@@ -1149,6 +1149,39 @@ const app = {
                 promptPara.textContent = `¿Qué quieres hacer ahora, ${profile.name}?`;
             }
         }
+    },
+
+    /**
+     * Legal Onboarding Logic
+     */
+    nextLegalScreen: (screenId) => {
+        app.showScreen(screenId);
+    },
+
+    checkLegalConsent: () => {
+        const dataCheck = document.getElementById('check-data').checked;
+        const aiCheck = document.getElementById('check-ai').checked;
+        const btn = document.getElementById('btn-accept-legal');
+
+        if (dataCheck && aiCheck) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            btn.style.cursor = 'not-allowed';
+        }
+    },
+
+    acceptLegal: () => {
+        localStorage.setItem('enclaro_legal_consent', 'true');
+        app.showScreen('legal-rights');
+        app.showToast('Consentimiento guardado.', 'success');
+    },
+
+    finishLegalOnboarding: () => {
+        app.showScreen('registration');
     }
 };
 
@@ -1160,13 +1193,25 @@ document.addEventListener('DOMContentLoaded', () => {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 
+    const legalConsent = localStorage.getItem('enclaro_legal_consent');
     const profileData = localStorage.getItem('enclaro_profile');
-    if (profileData) {
-        const profile = JSON.parse(profileData);
-        app.updatePersonalizedText(profile);
-        app.showScreen('onboarding');
-    } else {
+    const onboardingComplete = localStorage.getItem('enclaro_onboarding_complete');
+
+    if (!legalConsent) {
+        app.showScreen('legal-welcome');
+    } else if (!profileData) {
         app.showScreen('registration');
+    } else {
+        if (onboardingComplete) {
+            app.showScreen('dashboard');
+        } else {
+            app.showScreen('onboarding');
+        }
+        // Update personalization if profile exists
+        if (profileData) {
+            const profile = JSON.parse(profileData);
+            app.updatePersonalizedText(profile);
+        }
     }
 
     app.loadProfile();

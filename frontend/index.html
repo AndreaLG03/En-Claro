@@ -17,6 +17,201 @@
 <body>
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
     <div class="container" id="main-content">
+        <!-- Legal Onboarding Screens -->
+
+        <!-- 1. Welcome -->
+        <div id="screen-legal-welcome" class="screen">
+            <header>
+                <h1>Hola, te damos la bienvenida</h1>
+                <p>En Claro es tu apoyo en la comunicación social.</p>
+            </header>
+            <div class="card">
+                <p>Queremos que te sientas seguro/a usándola.</p>
+                <p>Antes de empezar, necesitamos explicarte brevemente cómo funcionamos y pedirte permiso para procesar
+                    tus datos.</p>
+                <p>Prometemos ser claros y directos.</p>
+                <button class="btn btn-primary" onclick="app.nextLegalScreen('legal-disclaimer')"
+                    style="margin-top: 20px;">
+                    Continuar <i data-lucide="arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. Disclaimer (Not a doctor) -->
+        <div id="screen-legal-disclaimer" class="screen">
+            <header>
+                <h1>Importante: No somos médicos</h1>
+            </header>
+            <div class="card">
+                <div
+                    style="background: rgba(255, 159, 67, 0.1); padding: 15px; border-radius: 12px; border: 1px dashed var(--warning-color); margin-bottom: 20px;">
+                    <h3
+                        style="color: var(--warning-color); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="alert-triangle"></i> Aviso Legal
+                    </h3>
+                    <ul style="list-style-type: none; padding: 0;">
+                        <li style="margin-bottom: 10px;">🚫 <strong>No realizamos diagnósticos</strong> médicos ni
+                            psicológicos.</li>
+                        <li style="margin-bottom: 10px;">🚫 <strong>No sustituimos</strong> a terapeutas ni
+                            profesionales de la salud.</li>
+                        <li>ℹ️ Nuestros análisis son sugerencias basadas en patrones, no verdades absolutas.</li>
+                    </ul>
+                </div>
+                <p>Úsala como una guía o "segunda opinión", pero confía siempre en tu criterio final y en el de tus
+                    profesionales.</p>
+                <button class="btn btn-primary" onclick="app.nextLegalScreen('legal-data')" style="margin-top: 20px;">
+                    Entendido <i data-lucide="check"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. Data Usage -->
+        <div id="screen-legal-data" class="screen">
+            <header>
+                <h1>Qué hacemos con tus datos</h1>
+            </header>
+            <div class="card">
+                <ul style="padding-left: 20px; line-height: 1.6;">
+                    <li style="margin-bottom: 15px;"><strong>Privacidad por diseño:</strong> No vendemos tus datos a
+                        nadie. Nunca.</li>
+                    <li style="margin-bottom: 15px;"><strong>Minimización:</strong> Solo procesamos lo que tú nos envías
+                        voluntariamente en cada consulta.</li>
+                    <li><strong>Seguridad:</strong> Tus datos viajan encriptados y seguros.</li>
+                </ul>
+                <p style="margin-top: 20px; font-size: 0.9rem; color: var(--text-muted);">Puedes usar la app con un
+                    pseudónimo si prefieres mantener tu identidad real reservada.</p>
+                <button class="btn btn-primary" onclick="app.nextLegalScreen('legal-ai')" style="margin-top: 20px;">
+                    Me parece bien <i data-lucide="thumbs-up"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 4. AI Usage -->
+        <div id="screen-legal-ai" class="screen">
+            <header>
+                <h1>Cómo funciona nuestra magia</h1>
+            </header>
+            <div class="card">
+                <p>En Claro utiliza tecnología de <strong>Inteligencia Artificial</strong> avanzada (proveedores
+                    externos como Anthropic) para entender el contexto.</p>
+
+                <div style="background: rgba(75, 108, 183, 0.1); padding: 15px; border-radius: 12px; margin: 20px 0;">
+                    <p><strong>Recuerda:</strong></p>
+                    <ul style="padding-left: 20px; margin-top: 10px;">
+                        <li>La IA <strong>puede cometer errores</strong>.</li>
+                        <li>No tiene sentimientos reales, aunque suene empática.</li>
+                    </ul>
+                </div>
+
+                <button class="btn btn-primary" onclick="app.nextLegalScreen('legal-consent')"
+                    style="margin-top: 20px;">
+                    Comprendido <i data-lucide="brain-circuit"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 5. Consent -->
+        <div id="screen-legal-consent" class="screen">
+            <header>
+                <h1>Solo una cosa más...</h1>
+                <p>Necesitamos tu permiso para cumplir con la ley (RGPD).</p>
+            </header>
+            <div class="card">
+                <div class="checkbox-group"
+                    style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
+                    <label class="custom-checkbox"
+                        style="display: flex; gap: 12px; align-items: flex-start; cursor: pointer;">
+                        <input type="checkbox" id="check-data" onchange="app.checkLegalConsent()"
+                            style="width: 20px; height: 20px; margin-top: 3px;">
+                        <span style="font-size: 0.95rem; line-height: 1.4;">
+                            <strong>Acepto el tratamiento de mis datos</strong> para el funcionamiento de la app, tal
+                            como se describe en la Política de Privacidad. (Obligatorio)
+                        </span>
+                    </label>
+
+                    <label class="custom-checkbox"
+                        style="display: flex; gap: 12px; align-items: flex-start; cursor: pointer;">
+                        <input type="checkbox" id="check-ai" onchange="app.checkLegalConsent()"
+                            style="width: 20px; height: 20px; margin-top: 3px;">
+                        <span style="font-size: 0.95rem; line-height: 1.4;">
+                            <strong>Entiendo que la app usa Inteligencia Artificial</strong> y que sus respuestas son
+                            sugerencias, no consejos médicos. (Obligatorio)
+                        </span>
+                    </label>
+                </div>
+
+                <button class="btn btn-secondary btn-small" onclick="app.showScreen('privacy-policy')"
+                    style="margin-bottom: 20px; font-size: 0.9rem;">
+                    <i data-lucide="file-text"></i> Leer Política de Privacidad completa
+                </button>
+
+                <button id="btn-accept-legal" class="btn btn-primary" onclick="app.acceptLegal()" disabled
+                    style="opacity: 0.6; cursor: not-allowed;">
+                    Acepto y Comienzo <i data-lucide="check-circle"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 6. Rights (Success) -->
+        <div id="screen-legal-rights" class="screen">
+            <header>
+                <h1>¡Todo listo! 🚀</h1>
+                <p>Tú tienes el control.</p>
+            </header>
+            <div class="card">
+                <p>Recuerda que en cualquier momento puedes:</p>
+                <ul style="padding-left: 20px; margin: 15px 0; line-height: 1.6;">
+                    <li>🗑️ Borrar tu historial de análisis.</li>
+                    <li>🔒 Retirar tu consentimiento.</li>
+                    <li>👤 Pedirnos que eliminemos tus datos.</li>
+                </ul>
+                <p style="font-weight: 600; color: var(--primary-color);">Tu tranquilidad y autonomía son nuestra
+                    prioridad.</p>
+
+                <button class="btn btn-primary" onclick="app.finishLegalOnboarding()" style="margin-top: 30px;">
+                    Empezar a usar En Claro <i data-lucide="sparkles"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Privacy Policy Screen -->
+        <div id="screen-privacy-policy" class="screen">
+            <header>
+                <h1>Política de Privacidad</h1>
+            </header>
+            <div class="card" style="max-height: 70vh; overflow-y: auto; text-align: left;">
+                <div id="privacy-content" class="markdown-content">
+                    <!-- Policy text will be injected here or hardcoded -->
+                    <h3>1. ¿Quiénes somos?</h3>
+                    <p>El responsable del tratamiento es Andrea Lancharro González. Ubicación: España (UE).</p>
+
+                    <h3>2. ¿Qué es En Claro?</h3>
+                    <p>Una app de apoyo cognitivo. NO es un producto sanitario ni médico.</p>
+
+                    <h3>3. Datos que recogemos</h3>
+                    <p>Solo lo necesario: textos/audios que envías, preferencias (avatar/nombre) y datos técnicos
+                        básicos. No pedimos datos de salud.</p>
+
+                    <h3>4. Finalidad</h3>
+                    <p>Analizar tus consultas y mejorar la app. Base legal: Tu consentimiento.</p>
+
+                    <h3>5. Inteligencia Artificial</h3>
+                    <p>Usamos proveedores como Anthropic. Compartimos solo lo necesario para el análisis.</p>
+
+                    <h3>6. Tus Derechos</h3>
+                    <p>Acceso, Rectificación, Supresión, Limitación, Portabilidad. Contáctanos para ejercerlos.</p>
+
+                    <p style="margin-top: 20px; font-style: italic; color: var(--text-muted);">
+                        Versión resumida para lectura fácil.
+                    </p>
+                </div>
+                <button class="btn btn-primary" onclick="app.showScreen('legal-consent')"
+                    style="position: sticky; bottom: 0; margin-top: 20px; box-shadow: 0 -4px 10px rgba(0,0,0,0.1);">
+                    <i data-lucide="arrow-left"></i> Volver al consentimiento
+                </button>
+            </div>
+        </div>
+
         <!-- Registration Screen -->
         <div id="screen-registration" class="screen">
             <header>
@@ -132,6 +327,10 @@
                         <i data-lucide="settings"></i>
                     </button>
                     <div id="settings-menu" class="settings-dropdown" style="display: none;">
+                        <button onclick="app.showScreen('privacy-policy')">
+                            <i data-lucide="shield"></i>
+                            <span>Privacidad y Legal</span>
+                        </button>
                         <button onclick="app.resetOnboarding()">
                             <i data-lucide="info"></i>
                             <span>Bienvenido a En Claro</span>
