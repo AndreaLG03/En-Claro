@@ -381,16 +381,25 @@ const app = {
             app.recognition.interimResults = true;
 
             app.recognition.onresult = (event) => {
+                let interimTranscript = '';
                 let finalTranscript = '';
+
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
                         finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
                     }
                 }
-                // We need to ensure we use the current input element
+
+                // Mobile Fix: Only append FINAL results to the input value to avoid duplication
+                // Visual feedback for interim results could be added here if needed, 
+                // but for now we ensure clean input by only taking final.
                 const currentInput = document.getElementById(app.recognition.targetInputId);
                 if (finalTranscript && currentInput) {
-                    currentInput.value += (currentInput.value ? ' ' : '') + finalTranscript;
+                    // Add space only if there is already text
+                    const separator = currentInput.value && !currentInput.value.endsWith(' ') ? ' ' : '';
+                    currentInput.value += separator + finalTranscript;
                 }
             };
 
@@ -1126,10 +1135,15 @@ const app = {
     updatePersonalizedText: (profile) => {
         if (!profile) return;
 
-        // Welcome Text Logic
+        // Welcome Text Logic - Gender Aware
         let welcomeWord = 'Bienvenido';
-        if (profile.gender === 'femenino') welcomeWord = 'Bienvenida';
-        else if (profile.gender === 'nobinario' || profile.gender === 'otro') welcomeWord = 'Bienvenide';
+        let welcomeSlogan = 'Tu apoyo para navegar el mundo social con claridad.';
+
+        if (profile.gender === 'femenino') {
+            welcomeWord = 'Bienvenida';
+        } else if (profile.gender === 'nobinario') {
+            welcomeWord = 'Bienvenide';
+        }
 
         const welcomeText = `${welcomeWord} a En Claro`;
 
@@ -1140,6 +1154,9 @@ const app = {
         // Update Onboarding Title
         const onboardingTitle = document.getElementById('i18n-onboarding-title');
         if (onboardingTitle) onboardingTitle.textContent = welcomeText;
+
+        // Update Toast/Notification if it exists or is triggered
+        // (This logic usually runs on load, so we update static elements)
 
         // Update Dashboard Prompt
         const dashboardHeader = document.querySelector('#screen-dashboard header');

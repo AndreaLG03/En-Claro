@@ -13,6 +13,7 @@ ESCENARIOS POSIBLES:
 - Cita médica.
 - Primera cita/Encuentro social.
 - Conversación casual con un vecino.
+- Resolución de Conflictos (desacuerdo con un amigo/compañero).
 
 INSTRUCCIONES DE RESPUESTA:
 - Responde de forma natural al último mensaje del usuario.

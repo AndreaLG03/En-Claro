@@ -1015,3 +1015,14 @@ tr:hover td {
     background: #f8f8f8;
     box-shadow: var(--shadow-sm);
 }
+
+/* Conflict Scenario Style */
+.conflict-card {
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 235, 235, 0.8));
+}
+
+.conflict-card:hover {
+    border-color: #ff6b6b;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+}
