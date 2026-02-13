@@ -5,8 +5,8 @@ from typing import Optional
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
-    CLAUDE_API_KEY: str
-    CLAUDE_MODEL: str = "claude-sonnet-4-5"
+    CLAUDE_API_KEY: Optional[str] = None # Optional to prevent startup crash if env var missing
+    CLAUDE_MODEL: str = "claude-3-5-sonnet-20240620" # Update to clearer model name if needed
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
     SECRET_KEY: str = "secret-key-for-dev"
