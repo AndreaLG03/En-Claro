@@ -1,73 +1,58 @@
-import httpx
 import logging
 from typing import Optional
+from anthropic import AsyncAnthropic, APIError, APIStatusError
 from ..config import settings
 
 logger = logging.getLogger(__name__)
-CLAUDE_URL = "https://api.anthropic.com/v1/messages"
 
-# Global client for connection pooling
-_client: Optional[httpx.AsyncClient] = None
+# Global client
+_client: Optional[AsyncAnthropic] = None
 
-def get_client() -> httpx.AsyncClient:
+def get_client() -> AsyncAnthropic:
     global _client
-    if _client is None or _client.is_closed:
-        _client = httpx.AsyncClient(timeout=90.0)
+    if _client is None:
+        if not settings.CLAUDE_API_KEY:
+            raise ValueError("CLAUDE_API_KEY is not configured.")
+        _client = AsyncAnthropic(api_key=settings.CLAUDE_API_KEY)
     return _client
 
 async def close_client():
     global _client
     if _client:
-        await _client.aclose()
+        await _client.close()
         _client = None
 
 async def call_claude(system_prompt: str, user_prompt: str) -> str:
     """
-    Calls the Anthropic API with provided prompts.
-    Uses a pooled AsyncClient for efficiency with simple retry logic.
+    Calls the Anthropic API using the official SDK.
     """
-    if not settings.CLAUDE_API_KEY:
-        raise ValueError("CLAUDE_API_KEY is not configured.")
-
-    headers = {
-        "x-api-key": settings.CLAUDE_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json"
-    }
-
-    payload = {
-        "model": settings.CLAUDE_MODEL,
-        "max_tokens": 1024,
-        "system": system_prompt,
-        "messages": [
-            {"role": "user", "content": user_prompt}
-        ]
-    }
-
     client = get_client()
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            response = await client.post(CLAUDE_URL, headers=headers, json=payload)
-            response.raise_for_status()
-            data = response.json()
-            return data["content"][0]["text"]
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 429 and attempt < max_retries - 1:
-                wait_time = (attempt + 1) * 2
-                logger.warning(f"Rate limited. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
-                import asyncio
-                await asyncio.sleep(wait_time)
-                continue
-            logger.error(f"Anthropic API error: {e.response.status_code} - {e.response.text}")
-            raise
-        except (httpx.RequestError, Exception) as e:
-            if attempt < max_retries - 1:
-                wait_time = (attempt + 1) * 1
-                logger.warning(f"Request error: {str(e)}. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
-                import asyncio
-                await asyncio.sleep(wait_time)
-                continue
-            logger.error(f"Unexpected error calling Claude: {str(e)}")
-            raise
-    return "" # Should not reach here
+    
+    try:
+        message = await client.messages.create(
+            model=settings.CLAUDE_MODEL,
+            max_tokens=1024,
+            system=system_prompt,
+            messages=[
+                {"role": "user", "content": user_prompt}
+            ]
+        )
+        # Content is a list of blocks, usually text.
+        if message.content and len(message.content) > 0:
+            return message.content[0].text
+        return ""
+
+    except APIStatusError as e:
+        logger.error(f"Anthropic API Status Error: {e.status_code} - {e.message}")
+        if e.status_code == 429:
+             # SDK handles some retries, but if it bubbles up, we can log it.
+             # In a real app we might want more complex backoff, 
+             # but the SDK default is usually sufficient for standard usage.
+             pass
+        raise e
+    except APIError as e:
+        logger.error(f"Anthropic API Error: {str(e)}")
+        raise e
+    except Exception as e:
+        logger.error(f"Unexpected error calling Claude: {str(e)}")
+        raise e
