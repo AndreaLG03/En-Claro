@@ -6,7 +6,7 @@ BACKEND_ROOT = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     CLAUDE_API_KEY: Optional[str] = None # Optional to prevent startup crash if env var missing
-    CLAUDE_MODEL: str = "claude-3-5-sonnet-latest" # Use latest alias to avoid deprecation issues
+    CLAUDE_MODEL: str = "claude-3-5-sonnet-20240620" # Reverting to specific version for stability
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
     SECRET_KEY: str = "secret-key-for-dev"
