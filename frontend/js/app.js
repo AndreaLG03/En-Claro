@@ -812,10 +812,26 @@ const app = {
         const voice = app.getVoice(gender, langCode);
         if (voice) {
             utterance.voice = voice;
-            // console.log(`DEBUG: Speaking with ${voice.name} (${gender})`);
+            // Show toast with voice name for debugging
+            app.showToast(`Voz: ${voice.name}`, 'info');
         }
 
         window.speechSynthesis.speak(utterance);
+    },
+
+    debugVoices: () => {
+        const voices = window.speechSynthesis.getVoices();
+        const esVoices = voices.filter(v => v.lang.startsWith('es'));
+
+        console.log('Todas las voces:', voices);
+
+        if (esVoices.length === 0) {
+            alert('No se detectaron voces en español. Intenta recargar la página o instalar voces en tu dispositivo.');
+            return;
+        }
+
+        const list = esVoices.map(v => `- ${v.name} (${v.lang})`).join('\n');
+        alert(`Voces en Español detectadas:\n\n${list}`);
     },
 
     /**
