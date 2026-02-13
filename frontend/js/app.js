@@ -983,57 +983,43 @@ const app = {
         // Return the first available candidate or the default voice if nothing matches
         return candidates[0] || voices.find(v => v.lang.startsWith(lang)) || null;
     },
-    /**
-     * Search for a "best" candidate from the filtered list (gendered or full available)
-     */
-    // If candidates is empty (no gender match), we use 'available'
-    if(candidates.length === 0) candidates = available;
 
-    let best = candidates.find(v => v.name.includes('Natural')) ||
-    candidates.find(v => v.name.includes('Google')) ||
-    candidates.find(v => v.name.includes('Microsoft'));
 
-    // If we still have nothing (and we had candidates), pick the first one
-    if(!best && candidates.length > 0) best = candidates[0];
+    endRoleplay: async () => {
+        app.showScreen('loading');
+        document.getElementById('loading-text').textContent = 'Generando feedback constructivo...';
 
-return best;
+        try {
+            const transcript = app.roleplayHistory
+                .filter(m => m.role !== 'system')
+                .map(m => `${m.role === 'user' ? 'Tú' : 'IA'}: ${m.content}`)
+                .join('\n');
+
+            const response = await fetch(`${app.apiUrl}/analyze`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: transcript,
+                    module: 'roleplay_feedback'
+                })
+            });
+
+            if (!response.ok) throw new Error('Error feedback');
+
+            const data = await response.json();
+            app.displayResult(data.result, 'roleplay');
+
+            // Re-show selector for next time
+            document.getElementById('roleplay-selector').style.display = 'block';
+            document.getElementById('roleplay-session').style.display = 'none';
+
+        } catch (e) {
+            app.showScreen('dashboard');
+            app.showToast('Error al generar feedback.', 'error');
+            document.getElementById('roleplay-selector').style.display = 'block';
+            document.getElementById('roleplay-session').style.display = 'none';
+        }
     },
-
-endRoleplay: async () => {
-    app.showScreen('loading');
-    document.getElementById('loading-text').textContent = 'Generando feedback constructivo...';
-
-    try {
-        const transcript = app.roleplayHistory
-            .filter(m => m.role !== 'system')
-            .map(m => `${m.role === 'user' ? 'Tú' : 'IA'}: ${m.content}`)
-            .join('\n');
-
-        const response = await fetch(`${app.apiUrl}/analyze`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                text: transcript,
-                module: 'roleplay_feedback'
-            })
-        });
-
-        if (!response.ok) throw new Error('Error feedback');
-
-        const data = await response.json();
-        app.displayResult(data.result, 'roleplay');
-
-        // Re-show selector for next time
-        document.getElementById('roleplay-selector').style.display = 'block';
-        document.getElementById('roleplay-session').style.display = 'none';
-
-    } catch (e) {
-        app.showScreen('dashboard');
-        app.showToast('Error al generar feedback.', 'error');
-        document.getElementById('roleplay-selector').style.display = 'block';
-        document.getElementById('roleplay-session').style.display = 'none';
-    }
-},
 
     setSocialBattery: (value) => {
         const input = document.getElementById('social-battery-value');
@@ -1052,324 +1038,324 @@ endRoleplay: async () => {
         app.showToast(`Energía ajustada al ${value}%`, 'info');
     },
 
-        completeOnboarding: () => {
-            localStorage.setItem('enclaro_onboarding_complete', 'true');
-            app.showScreen('dashboard');
-            app.showToast('¡Bienvenido a En Claro!', 'success');
-        },
+    completeOnboarding: () => {
+        localStorage.setItem('enclaro_onboarding_complete', 'true');
+        app.showScreen('dashboard');
+        app.showToast('¡Bienvenido a En Claro!', 'success');
+    },
 
-            resetOnboarding: () => {
-                localStorage.removeItem('enclaro_onboarding_complete');
-                app.showScreen('onboarding');
-                app.showToast('Bienvenida reiniciada.', 'info');
-                if (document.getElementById('settings-menu')) {
-                    document.getElementById('settings-menu').style.display = 'none';
-                }
-            },
+    resetOnboarding: () => {
+        localStorage.removeItem('enclaro_onboarding_complete');
+        app.showScreen('onboarding');
+        app.showToast('Bienvenida reiniciada.', 'info');
+        if (document.getElementById('settings-menu')) {
+            document.getElementById('settings-menu').style.display = 'none';
+        }
+    },
 
-                toggleSettings: () => {
-                    const menu = document.getElementById('settings-menu');
-                    if (menu) {
-                        menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+    toggleSettings: () => {
+        const menu = document.getElementById('settings-menu');
+        if (menu) {
+            menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+        }
+    },
+
+    toggleLanguage: () => {
+        app.currentLanguage = app.currentLanguage === 'es' ? 'en' : 'es';
+        localStorage.setItem('enclaro_lang', app.currentLanguage);
+        app.updateUI();
+        app.showToast(app.currentLanguage === 'es' ? 'Lenguaje cambiado a Español' : 'Language changed to English', 'success');
+        app.toggleSettings();
+    },
+
+    updateUI: () => {
+        const t = app.translations[app.currentLanguage];
+
+        // Comprehensive map of all i18n IDs to translation keys
+        const elements = {
+            'i18n-title': 'title',
+            'i18n-subtitle': 'subtitle',
+            'i18n-onboarding-title': 'onboarding_title',
+            'i18n-onboarding-slogan': 'onboarding_slogan',
+            'i18n-btn-start': 'btn_start',
+            'i18n-nav-message': 'nav_message',
+            'i18n-nav-audio': 'nav_audio',
+            'i18n-nav-glossary': 'nav_glossary',
+            'i18n-nav-response': 'nav_response',
+            'i18n-nav-routine': 'nav_routine',
+            'i18n-nav-roleplay': 'nav_roleplay',
+            'i18n-nav-history': 'nav_history',
+            'lang-toggle-text': 'settings_lang'
+        };
+
+        for (const [id, key] of Object.entries(elements)) {
+            const el = document.getElementById(id);
+            if (el) {
+                // If the element is a button that might contain an icon
+                if (el.tagName === 'BUTTON') {
+                    // Try to find the icon (either <i> or <svg> from Lucide)
+                    const icon = el.querySelector('i, svg');
+                    const text = t[key] || '';
+
+                    // Clear the button but preserve the icon if it exists
+                    if (icon) {
+                        // Keep a reference to the icon element
+                        const iconClone = icon.cloneNode(true);
+                        el.innerHTML = '';
+                        el.textContent = text + ' ';
+                        el.appendChild(iconClone);
+                    } else {
+                        el.textContent = text;
                     }
-                },
+                } else {
+                    // Standard text element
+                    el.textContent = t[key] || '';
+                }
+            }
+        }
 
-                    toggleLanguage: () => {
-                        app.currentLanguage = app.currentLanguage === 'es' ? 'en' : 'es';
-                        localStorage.setItem('enclaro_lang', app.currentLanguage);
-                        app.updateUI();
-                        app.showToast(app.currentLanguage === 'es' ? 'Lenguaje cambiado a Español' : 'Language changed to English', 'success');
-                        app.toggleSettings();
-                    },
+        // Handle profile labels specifically
+        const profTitle = document.querySelector('#screen-profile h1');
+        if (profTitle) profTitle.textContent = t.profile_title;
 
-                        updateUI: () => {
-                            const t = app.translations[app.currentLanguage];
+        const profDesc = document.querySelector('#screen-profile header p');
+        if (profDesc) profDesc.textContent = t.profile_desc;
 
-                            // Comprehensive map of all i18n IDs to translation keys
-                            const elements = {
-                                'i18n-title': 'title',
-                                'i18n-subtitle': 'subtitle',
-                                'i18n-onboarding-title': 'onboarding_title',
-                                'i18n-onboarding-slogan': 'onboarding_slogan',
-                                'i18n-btn-start': 'btn_start',
-                                'i18n-nav-message': 'nav_message',
-                                'i18n-nav-audio': 'nav_audio',
-                                'i18n-nav-glossary': 'nav_glossary',
-                                'i18n-nav-response': 'nav_response',
-                                'i18n-nav-routine': 'nav_routine',
-                                'i18n-nav-roleplay': 'nav_roleplay',
-                                'i18n-nav-history': 'nav_history',
-                                'lang-toggle-text': 'settings_lang'
-                            };
+        // Finalize icons (one single call)
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    },
 
-                            for (const [id, key] of Object.entries(elements)) {
-                                const el = document.getElementById(id);
-                                if (el) {
-                                    // If the element is a button that might contain an icon
-                                    if (el.tagName === 'BUTTON') {
-                                        // Try to find the icon (either <i> or <svg> from Lucide)
-                                        const icon = el.querySelector('i, svg');
-                                        const text = t[key] || '';
+    toggleAvatarPicker: () => {
+        const picker = document.getElementById('avatar-picker');
+        if (picker) {
+            picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
+        }
+    },
 
-                                        // Clear the button but preserve the icon if it exists
-                                        if (icon) {
-                                            // Keep a reference to the icon element
-                                            const iconClone = icon.cloneNode(true);
-                                            el.innerHTML = '';
-                                            el.textContent = text + ' ';
-                                            el.appendChild(iconClone);
-                                        } else {
-                                            el.textContent = text;
-                                        }
-                                    } else {
-                                        // Standard text element
-                                        el.textContent = t[key] || '';
-                                    }
-                                }
-                            }
+    selectAvatar: (emoji) => {
+        const avatarDisplay = document.getElementById('current-avatar');
+        if (avatarDisplay) {
+            avatarDisplay.textContent = emoji;
+        }
+        app.toggleAvatarPicker();
+    },
 
-                            // Handle profile labels specifically
-                            const profTitle = document.querySelector('#screen-profile h1');
-                            if (profTitle) profTitle.textContent = t.profile_title;
+    connectGoogle: () => {
+        // Redirect to backend auth endpoint
+        window.location.href = `${app.apiUrl.replace('/api', '')}/auth/login`;
+    },
 
-                            const profDesc = document.querySelector('#screen-profile header p');
-                            if (profDesc) profDesc.textContent = t.profile_desc;
+    saveProfile: () => {
+        const name = document.getElementById('profile-name').value;
+        const surname = document.getElementById('profile-surname').value;
+        const email = document.getElementById('profile-email').value;
+        const gender = document.getElementById('profile-gender').value;
+        const avatar = document.getElementById('current-avatar').textContent;
 
-                            // Finalize icons (one single call)
-                            if (window.lucide) {
-                                lucide.createIcons();
-                            }
-                        },
+        const profile = { name, surname, email, gender, avatar };
+        localStorage.setItem('enclaro_profile', JSON.stringify(profile));
 
-                            toggleAvatarPicker: () => {
-                                const picker = document.getElementById('avatar-picker');
-                                if (picker) {
-                                    picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
-                                }
-                            },
+        // Update UI immediately
+        app.updatePersonalizedText(profile);
 
-                                selectAvatar: (emoji) => {
-                                    const avatarDisplay = document.getElementById('current-avatar');
-                                    if (avatarDisplay) {
-                                        avatarDisplay.textContent = emoji;
-                                    }
-                                    app.toggleAvatarPicker();
-                                },
+        app.showToast(app.currentLanguage === 'es' ? 'Perfil guardado con éxito' : 'Profile saved successfully', 'success');
+        app.showScreen('dashboard');
+    },
 
-                                    connectGoogle: () => {
-                                        // Redirect to backend auth endpoint
-                                        window.location.href = `${app.apiUrl.replace('/api', '')}/auth/login`;
-                                    },
+    loadProfile: () => {
+        // Load Language
+        const savedLang = localStorage.getItem('enclaro_lang');
+        if (savedLang) {
+            app.currentLanguage = savedLang;
+            app.updateUI();
+        }
 
-                                        saveProfile: () => {
-                                            const name = document.getElementById('profile-name').value;
-                                            const surname = document.getElementById('profile-surname').value;
-                                            const email = document.getElementById('profile-email').value;
-                                            const gender = document.getElementById('profile-gender').value;
-                                            const avatar = document.getElementById('current-avatar').textContent;
+        const profileData = localStorage.getItem('enclaro_profile');
+        console.log('DEBUG: Loaded profile data:', profileData);
 
-                                            const profile = { name, surname, email, gender, avatar };
-                                            localStorage.setItem('enclaro_profile', JSON.stringify(profile));
+        if (profileData) {
+            const profile = JSON.parse(profileData);
 
-                                            // Update UI immediately
-                                            app.updatePersonalizedText(profile);
+            // Helper to safely set value
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = val || '';
+                    console.log(`DEBUG: Set ${id} to "${val}"`);
+                } else {
+                    console.warn(`DEBUG: Element ${id} not found`);
+                }
+            };
 
-                                            app.showToast(app.currentLanguage === 'es' ? 'Perfil guardado con éxito' : 'Profile saved successfully', 'success');
-                                            app.showScreen('dashboard');
-                                        },
+            setVal('profile-name', profile.name);
+            setVal('profile-surname', profile.surname);
+            setVal('profile-email', profile.email);
+            setVal('profile-gender', profile.gender);
 
-                                            loadProfile: () => {
-                                                // Load Language
-                                                const savedLang = localStorage.getItem('enclaro_lang');
-                                                if (savedLang) {
-                                                    app.currentLanguage = savedLang;
-                                                    app.updateUI();
-                                                }
+            const avatarEl = document.getElementById('current-avatar');
+            if (avatarEl) {
+                avatarEl.textContent = profile.avatar || '👤';
+            }
 
-                                                const profileData = localStorage.getItem('enclaro_profile');
-                                                console.log('DEBUG: Loaded profile data:', profileData);
+            app.updatePersonalizedText(profile);
+        }
+    },
 
-                                                if (profileData) {
-                                                    const profile = JSON.parse(profileData);
+    toggleAvatarPicker: () => {
+        const picker = document.getElementById('avatar-picker');
+        if (picker) {
+            picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
+        }
+    },
 
-                                                    // Helper to safely set value
-                                                    const setVal = (id, val) => {
-                                                        const el = document.getElementById(id);
-                                                        if (el) {
-                                                            el.value = val || '';
-                                                            console.log(`DEBUG: Set ${id} to "${val}"`);
-                                                        } else {
-                                                            console.warn(`DEBUG: Element ${id} not found`);
-                                                        }
-                                                    };
+    selectAvatar: (avatar) => {
+        const avatarEl = document.getElementById('current-avatar');
+        if (avatarEl) {
+            avatarEl.textContent = avatar;
+        }
+        // Hide picker after selection
+        const picker = document.getElementById('avatar-picker');
+        if (picker) picker.style.display = 'none';
 
-                                                    setVal('profile-name', profile.name);
-                                                    setVal('profile-surname', profile.surname);
-                                                    setVal('profile-email', profile.email);
-                                                    setVal('profile-gender', profile.gender);
+        // Auto-save logic if in profile screen? 
+        // Better to wait for explicit save, but let's update local state visual
+    },
 
-                                                    const avatarEl = document.getElementById('current-avatar');
-                                                    if (avatarEl) {
-                                                        avatarEl.textContent = profile.avatar || '👤';
-                                                    }
+    checkAuth: async () => {
+        try {
+            const response = await fetch(`${app.apiUrl.replace('/api', '')}/auth/me`);
+            if (response.ok) {
+                const user = await response.json();
+                if (user) {
+                    // Update profile UI
+                    if (document.getElementById('profile-name')) document.getElementById('profile-name').value = user.name || '';
+                    if (document.getElementById('profile-email')) document.getElementById('profile-email').value = user.email || '';
+                    if (document.getElementById('current-avatar')) document.getElementById('current-avatar').textContent = user.picture ? '🖼️' : '👤';
 
-                                                    app.updatePersonalizedText(profile);
-                                                }
-                                            },
+                    // Specific logic for Google Avatar
+                    if (user.picture) {
+                        const avatarEl = document.getElementById('current-avatar');
+                        if (avatarEl) {
+                            avatarEl.innerHTML = `<img src="${user.picture}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+                        }
+                    }
 
-                                                toggleAvatarPicker: () => {
-                                                    const picker = document.getElementById('avatar-picker');
-                                                    if (picker) {
-                                                        picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
-                                                    }
-                                                },
+                    // Save to local storage (merging with existing gender if possible)
+                    const existingData = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
 
-                                                    selectAvatar: (avatar) => {
-                                                        const avatarEl = document.getElementById('current-avatar');
-                                                        if (avatarEl) {
-                                                            avatarEl.textContent = avatar;
-                                                        }
-                                                        // Hide picker after selection
-                                                        const picker = document.getElementById('avatar-picker');
-                                                        if (picker) picker.style.display = 'none';
+                    const newProfile = {
+                        name: user.name,
+                        email: user.email,
+                        avatar: user.picture || '👤',
+                        gender: existingData.gender || '', // Preserve gender
+                        surname: existingData.surname || '' // Preserve surname
+                    };
 
-                                                        // Auto-save logic if in profile screen? 
-                                                        // Better to wait for explicit save, but let's update local state visual
-                                                    },
+                    localStorage.setItem('enclaro_profile', JSON.stringify(newProfile));
+                    app.updatePersonalizedText(newProfile);
+                }
+            }
+        } catch (e) {
+            console.log('Not logged in or auth check failed', e);
+        }
+    },
 
-                                                        checkAuth: async () => {
-                                                            try {
-                                                                const response = await fetch(`${app.apiUrl.replace('/api', '')}/auth/me`);
-                                                                if (response.ok) {
-                                                                    const user = await response.json();
-                                                                    if (user) {
-                                                                        // Update profile UI
-                                                                        if (document.getElementById('profile-name')) document.getElementById('profile-name').value = user.name || '';
-                                                                        if (document.getElementById('profile-email')) document.getElementById('profile-email').value = user.email || '';
-                                                                        if (document.getElementById('current-avatar')) document.getElementById('current-avatar').textContent = user.picture ? '🖼️' : '👤';
+    currentRegAvatar: '👤',
 
-                                                                        // Specific logic for Google Avatar
-                                                                        if (user.picture) {
-                                                                            const avatarEl = document.getElementById('current-avatar');
-                                                                            if (avatarEl) {
-                                                                                avatarEl.innerHTML = `<img src="${user.picture}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
-                                                                            }
-                                                                        }
+    selectRegAvatar: (avatar) => {
+        app.currentRegAvatar = avatar;
+        document.getElementById('reg-avatar-display').textContent = avatar;
+    },
 
-                                                                        // Save to local storage (merging with existing gender if possible)
-                                                                        const existingData = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+    completeRegistration: () => {
+        const name = document.getElementById('reg-name').value.trim();
+        const surname = document.getElementById('reg-surname').value.trim();
+        const gender = document.getElementById('reg-gender').value;
 
-                                                                        const newProfile = {
-                                                                            name: user.name,
-                                                                            email: user.email,
-                                                                            avatar: user.picture || '👤',
-                                                                            gender: existingData.gender || '', // Preserve gender
-                                                                            surname: existingData.surname || '' // Preserve surname
-                                                                        };
+        if (!name || !gender) {
+            app.showToast('Por favor, introduce tu nombre y selecciona un género.', 'error');
+            return;
+        }
 
-                                                                        localStorage.setItem('enclaro_profile', JSON.stringify(newProfile));
-                                                                        app.updatePersonalizedText(newProfile);
-                                                                    }
-                                                                }
-                                                            } catch (e) {
-                                                                console.log('Not logged in or auth check failed', e);
-                                                            }
-                                                        },
+        const profile = {
+            name: name,
+            surname: surname,
+            gender: gender,
+            avatar: app.currentRegAvatar
+        };
 
-                                                            currentRegAvatar: '👤',
+        localStorage.setItem('enclaro_profile', JSON.stringify(profile));
+        app.updatePersonalizedText(profile);
+        app.showScreen('onboarding');
+        app.showToast('¡Perfil creado con éxito!', 'success');
+    },
 
-                                                                selectRegAvatar: (avatar) => {
-                                                                    app.currentRegAvatar = avatar;
-                                                                    document.getElementById('reg-avatar-display').textContent = avatar;
-                                                                },
+    updatePersonalizedText: (profile) => {
+        if (!profile) return;
 
-                                                                    completeRegistration: () => {
-                                                                        const name = document.getElementById('reg-name').value.trim();
-                                                                        const surname = document.getElementById('reg-surname').value.trim();
-                                                                        const gender = document.getElementById('reg-gender').value;
+        // Welcome Text Logic - Gender Aware
+        let welcomeWord = 'Bienvenido';
 
-                                                                        if (!name || !gender) {
-                                                                            app.showToast('Por favor, introduce tu nombre y selecciona un género.', 'error');
-                                                                            return;
-                                                                        }
+        if (profile.gender === 'femenino') {
+            welcomeWord = 'Bienvenida';
+        } else if (profile.gender === 'nobinario') {
+            welcomeWord = 'Bienvenide';
+        }
 
-                                                                        const profile = {
-                                                                            name: name,
-                                                                            surname: surname,
-                                                                            gender: gender,
-                                                                            avatar: app.currentRegAvatar
-                                                                        };
+        const welcomeText = `${welcomeWord} a En Claro`;
 
-                                                                        localStorage.setItem('enclaro_profile', JSON.stringify(profile));
-                                                                        app.updatePersonalizedText(profile);
-                                                                        app.showScreen('onboarding');
-                                                                        app.showToast('¡Perfil creado con éxito!', 'success');
-                                                                    },
+        // Update Dashboard Welcome (Settings Menu)
+        const settingsWelcome = document.querySelector('#settings-menu button:first-child span');
+        if (settingsWelcome) settingsWelcome.textContent = welcomeText;
 
-                                                                        updatePersonalizedText: (profile) => {
-                                                                            if (!profile) return;
+        // Update Onboarding Title
+        const onboardingTitle = document.getElementById('i18n-onboarding-title');
+        if (onboardingTitle) onboardingTitle.textContent = welcomeText;
 
-                                                                            // Welcome Text Logic - Gender Aware
-                                                                            let welcomeWord = 'Bienvenido';
+        // Update Dashboard Prompt
+        const dashboardHeader = document.querySelector('#screen-dashboard header');
+        if (dashboardHeader) {
+            const promptPara = dashboardHeader.querySelectorAll('p')[1]; // 2nd paragraph
+            if (promptPara) {
+                promptPara.textContent = `¿Qué quieres hacer ahora, ${profile.name}?`;
+            }
+        }
+    },
 
-                                                                            if (profile.gender === 'femenino') {
-                                                                                welcomeWord = 'Bienvenida';
-                                                                            } else if (profile.gender === 'nobinario') {
-                                                                                welcomeWord = 'Bienvenide';
-                                                                            }
+    /**
+     * Legal Onboarding Logic
+     */
+    nextLegalScreen: (screenId) => {
+        app.showScreen(screenId);
+    },
 
-                                                                            const welcomeText = `${welcomeWord} a En Claro`;
+    checkLegalConsent: () => {
+        const dataCheck = document.getElementById('check-data').checked;
+        const aiCheck = document.getElementById('check-ai').checked;
+        const btn = document.getElementById('btn-accept-legal');
 
-                                                                            // Update Dashboard Welcome (Settings Menu)
-                                                                            const settingsWelcome = document.querySelector('#settings-menu button:first-child span');
-                                                                            if (settingsWelcome) settingsWelcome.textContent = welcomeText;
+        if (dataCheck && aiCheck) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            btn.style.cursor = 'not-allowed';
+        }
+    },
 
-                                                                            // Update Onboarding Title
-                                                                            const onboardingTitle = document.getElementById('i18n-onboarding-title');
-                                                                            if (onboardingTitle) onboardingTitle.textContent = welcomeText;
+    acceptLegal: () => {
+        localStorage.setItem('enclaro_legal_consent', 'true');
+        app.showScreen('legal-rights');
+        app.showToast('Consentimiento guardado.', 'success');
+    },
 
-                                                                            // Update Dashboard Prompt
-                                                                            const dashboardHeader = document.querySelector('#screen-dashboard header');
-                                                                            if (dashboardHeader) {
-                                                                                const promptPara = dashboardHeader.querySelectorAll('p')[1]; // 2nd paragraph
-                                                                                if (promptPara) {
-                                                                                    promptPara.textContent = `¿Qué quieres hacer ahora, ${profile.name}?`;
-                                                                                }
-                                                                            }
-                                                                        },
-
-                                                                            /**
-                                                                             * Legal Onboarding Logic
-                                                                             */
-                                                                            nextLegalScreen: (screenId) => {
-                                                                                app.showScreen(screenId);
-                                                                            },
-
-                                                                                checkLegalConsent: () => {
-                                                                                    const dataCheck = document.getElementById('check-data').checked;
-                                                                                    const aiCheck = document.getElementById('check-ai').checked;
-                                                                                    const btn = document.getElementById('btn-accept-legal');
-
-                                                                                    if (dataCheck && aiCheck) {
-                                                                                        btn.disabled = false;
-                                                                                        btn.style.opacity = '1';
-                                                                                        btn.style.cursor = 'pointer';
-                                                                                    } else {
-                                                                                        btn.disabled = true;
-                                                                                        btn.style.opacity = '0.6';
-                                                                                        btn.style.cursor = 'not-allowed';
-                                                                                    }
-                                                                                },
-
-                                                                                    acceptLegal: () => {
-                                                                                        localStorage.setItem('enclaro_legal_consent', 'true');
-                                                                                        app.showScreen('legal-rights');
-                                                                                        app.showToast('Consentimiento guardado.', 'success');
-                                                                                    },
-
-                                                                                        finishLegalOnboarding: () => {
-                                                                                            app.showScreen('registration');
-                                                                                        }
+    finishLegalOnboarding: () => {
+        app.showScreen('registration');
+    }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
