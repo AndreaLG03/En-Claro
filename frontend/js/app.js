@@ -1245,8 +1245,7 @@ endRoleplay: async () => {
                                                                             }
                                                                         }
 
-                                                                        // Save to local storage (merging with existing gender if possible, but for now simple overwrite or just update known fields)
-                                                                        // We should preserve existing gender if it exists in local storage but not in Google
+                                                                        // Save to local storage (merging with existing gender if possible)
                                                                         const existingData = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
 
                                                                         const newProfile = {
@@ -1301,7 +1300,6 @@ endRoleplay: async () => {
 
                                                                             // Welcome Text Logic - Gender Aware
                                                                             let welcomeWord = 'Bienvenido';
-                                                                            let welcomeSlogan = 'Tu apoyo para navegar el mundo social con claridad.';
 
                                                                             if (profile.gender === 'femenino') {
                                                                                 welcomeWord = 'Bienvenida';
@@ -1318,9 +1316,6 @@ endRoleplay: async () => {
                                                                             // Update Onboarding Title
                                                                             const onboardingTitle = document.getElementById('i18n-onboarding-title');
                                                                             if (onboardingTitle) onboardingTitle.textContent = welcomeText;
-
-                                                                            // Update Toast/Notification if it exists or is triggered
-                                                                            // (This logic usually runs on load, so we update static elements)
 
                                                                             // Update Dashboard Prompt
                                                                             const dashboardHeader = document.querySelector('#screen-dashboard header');
