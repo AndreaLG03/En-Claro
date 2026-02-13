@@ -836,20 +836,37 @@ const app = {
     },
 
     /**
+     * Ensure voices are loaded
+     */
+    initVoices: () => {
+        let voices = window.speechSynthesis.getVoices();
+        if (voices.length === 0) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                voices = window.speechSynthesis.getVoices();
+                console.log('DEBUG: Voices loaded:', voices.map(v => v.name));
+            };
+        }
+    },
+
+    /**
      * Get best voice for gender
      */
     getVoice: (gender, lang) => {
         const voices = window.speechSynthesis.getVoices();
-        const available = voices.filter(v => v.lang.startsWith(lang.split('-')[0])); // loosely match lang 'es'
+        // Looser lang match: 'es' matches 'es-ES', 'es-MX', etc.
+        const available = voices.filter(v => v.lang.startsWith(lang.split('-')[0]));
 
         let candidates = available;
 
         if (gender === 'male') {
-            // Prioritize known male voices
+            // Prioritize known male voices across platforms
             candidates = available.filter(v =>
                 v.name.includes('Pablo') ||
                 v.name.includes('Raul') ||
                 v.name.includes('Stefan') ||
+                v.name.includes('Daniel') ||
+                v.name.includes('Microsoft Jesus') ||
+                v.name.includes('Google español de Estados Unidos') ||
                 v.name.includes('Male') ||
                 v.name.toLowerCase().includes('hombre')
             );
@@ -859,18 +876,27 @@ const app = {
                 v.name.includes('Helena') ||
                 v.name.includes('Laura') ||
                 v.name.includes('Sabina') ||
+                v.name.includes('Paulina') ||
+                v.name.includes('Monica') ||
+                v.name.includes('Microsoft Zira') ||
+                v.name.includes('Google español') ||
                 v.name.includes('Female') ||
                 v.name.toLowerCase().includes('mujer')
             );
         }
 
-        // If no specific gender match, fallback to "Natural" or "Google" or just first available
+        // Search for a "best" candidate from the filtered list (gendered or full available)
+        // If candidates is empty (no gender match), we use 'available'
         if (candidates.length === 0) candidates = available;
 
-        return candidates.find(v => v.name.includes('Natural')) ||
+        let best = candidates.find(v => v.name.includes('Natural')) ||
             candidates.find(v => v.name.includes('Google')) ||
-            candidates.find(v => v.name.includes('Microsoft')) ||
-            candidates[0];
+            candidates.find(v => v.name.includes('Microsoft'));
+
+        // If we still have nothing (and we had candidates), pick the first one
+        if (!best && candidates.length > 0) best = candidates[0];
+
+        return best;
     },
 
     endRoleplay: async () => {
@@ -1280,6 +1306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    app.initVoices();
     app.loadProfile();
     app.checkAuth();
     app.checkBackendStatus();
