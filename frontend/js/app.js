@@ -776,8 +776,17 @@ const app = {
             // Try to show specific error from backend if available
             let errorMsg = 'No se pudo conectar con el simulador.';
 
-            if (error.message.includes('401')) errorMsg = 'Error de autenticación: Verifica tu API KEY.';
-            if (error.message.includes('500')) errorMsg = 'Error interno del servidor. Intenta más tarde.';
+            // If the error object has the message from our throw new Error(`${response.status}: ${detailedError}`)
+            // we should show that.
+            if (error.message && error.message.includes(':')) {
+                errorMsg = error.message; // e.g. "401: Error de autenticación..."
+                // Strip status code for cleaner toast if possible, or keep it for debug
+            } else if (error.message.includes('401')) {
+                errorMsg = 'Error de autenticación: Verifica tu API KEY.';
+            } else if (error.message.includes('500')) {
+                // Don't overwrite if we already have a specific message in the error
+                if (!errorMsg.includes(':')) errorMsg = 'Error interno del servidor. Intenta más tarde.';
+            }
 
             app.showToast(errorMsg, 'error');
             app.addChatMessage(`Error: ${errorMsg}`, 'system');

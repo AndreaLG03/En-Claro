@@ -39,8 +39,10 @@ async def analyze_text(request: TextRequest):
         friendly_error = "No se pudo analizar el contenido. Por favor, comprueba tu conexión o intenta más tarde."
         if "401" in error_msg or "authentication" in error_msg.lower():
             friendly_error = "Error de autenticación: Verifica tu CLAUDE_API_KEY."
+            raise HTTPException(status_code=401, detail=friendly_error)
         elif "429" in error_msg:
             friendly_error = "Límite de mensajes alcanzado. Por favor, espera un momento."
+            raise HTTPException(status_code=429, detail=friendly_error)
             
         raise HTTPException(
             status_code=500,
