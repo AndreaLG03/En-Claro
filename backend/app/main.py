@@ -99,6 +99,21 @@ if FRONTEND_DIR.exists():
     app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
     app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")
     
+    # Mount images/assets if they exist
+    if (FRONTEND_DIR / "assets").exists():
+        app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
+
+    @app.get("/")
+    async def read_root():
+        index_path = FRONTEND_DIR / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+        return {"status": "ok", "message": "Backend is running, but frontend not found."}
+
+    @app.get("/health")
+    async def health_check():
+        return {"status": "ok"}
+    
     # Mount assets if they exist (newly added for logo)
     assets_dir = FRONTEND_DIR / "assets"
     if assets_dir.exists():
