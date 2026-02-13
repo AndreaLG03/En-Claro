@@ -723,6 +723,7 @@ const app = {
 
     startRoleplay: (scenario) => {
         app.currentScenario = scenario;
+        app.currentVoiceGender = 'neutral'; // Reset voice state for new scenario
         app.roleplayHistory = [
             { role: 'system', content: `Escenario: ${scenario}` }
         ];
@@ -788,6 +789,8 @@ const app = {
     /**
      * Text-to-Speech Helper with Natural Voice Selection
      */
+    currentVoiceGender: 'neutral', // Persistence for roleplay session
+
     speak: (text) => {
         if (!window.speechSynthesis) return;
 
@@ -805,14 +808,20 @@ const app = {
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
 
-        // Detect Gender from Name or Context
-        const gender = app.detectGender(text);
+        // 1. Detect Gender from Text
+        const detected = app.detectGender(text);
 
-        // Select best voice based on gender
-        const voice = app.getVoice(gender, langCode);
+        // 2. Update persistent state ONLY if a specific gender is detected
+        if (detected !== 'neutral') {
+            app.currentVoiceGender = detected;
+        }
+
+        // 3. Use the persistent gender for voice selection
+        const voice = app.getVoice(app.currentVoiceGender, langCode);
+
         if (voice) {
             utterance.voice = voice;
-            // Show toast with voice name for debugging
+            // Debug Feedback with Gender info
             app.showToast(`Voz: ${voice.name}`, 'info');
         }
 
@@ -877,6 +886,7 @@ const app = {
         if (gender === 'male') {
             // Prioritize known male voices across platforms
             candidates = available.filter(v =>
+                v.name.includes('Microsoft Pablo') || // Verified on user device
                 v.name.includes('Pablo') ||
                 v.name.includes('Raul') ||
                 v.name.includes('Stefan') ||
@@ -889,6 +899,8 @@ const app = {
         } else if (gender === 'female') {
             // Prioritize known female voices
             candidates = available.filter(v =>
+                v.name.includes('Microsoft Helena') || // Verified on user device
+                v.name.includes('Microsoft Laura') ||  // Verified on user device
                 v.name.includes('Helena') ||
                 v.name.includes('Laura') ||
                 v.name.includes('Sabina') ||
