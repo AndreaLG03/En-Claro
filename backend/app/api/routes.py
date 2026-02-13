@@ -46,5 +46,5 @@ async def analyze_text(request: TextRequest):
             
         raise HTTPException(
             status_code=500,
-            detail=friendly_error
+            detail=f"Error técnico: {str(e)}"
         )
