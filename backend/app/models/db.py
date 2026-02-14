@@ -8,7 +8,11 @@ from ..config import settings
 # --- Database Config ---
 # Use SQLite for now. In production (Render), this should be Postgres.
 # Render provides a DATABASE_URL env var.
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./enclaro.db")
+if os.getenv("RENDER"):
+    # Use /tmp for ephemeral storage on Render (guaranteed writable)
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/enclaro.db")
+else:
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./enclaro.db")
 
 engine = create_engine(
     DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
