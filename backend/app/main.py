@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
+import os
+
 
 from .api.routes import router
 from .services.claude_client import close_client
@@ -41,8 +43,14 @@ async def lifespan(app: FastAPI):
 
 # Robustly find the frontend directory
 def find_frontend_dir():
+    # 1. Check if on Render and use absolute path
+    if os.environ.get("RENDER"):
+        render_path = Path("/opt/render/project/src/frontend")
+        if render_path.exists():
+            return render_path
+            
+    # 2. Walk up tree for local dev or if absolute path failed
     current = Path(__file__).resolve().parent
-    # Walk up 4 levels max (backend/app/main.py -> backend/app -> backend -> src -> root)
     for _ in range(5):
         if (current / "frontend").exists() and (current / "frontend").is_dir():
             return current / "frontend"
@@ -50,17 +58,16 @@ def find_frontend_dir():
         if current == current.parent: # Reached root
             break
             
-    # Fallback to absolute paths common in Render
-    if Path("/opt/render/project/src/frontend").exists():
-        return Path("/opt/render/project/src/frontend")
-        
     return None
 
 frontend_path = find_frontend_dir()
 
 if not frontend_path:
-    logger.error(f"CRITICAL: Frontend directory NOT found. Searched from {Path(__file__).resolve().parent}")
-    # Fallback used in defining BASE_DIR later, but this early check helps logs
+    # Last ditch effort for Render: maybe it's just 'frontend'?
+    if Path("frontend").exists():
+        frontend_path = Path("frontend").resolve()
+    else:
+        logger.error(f"CRITICAL: Frontend directory NOT found. CWD: {os.getcwd()}")
 else:
     logger.info(f"Frontend found at: {frontend_path}")
 
