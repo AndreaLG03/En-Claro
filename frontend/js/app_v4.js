@@ -739,7 +739,8 @@ const app = {
         'Cita Médica': { name: 'Dra. García', gender: 'female', role: 'Doctora empática y profesional' },
         'Resolución de Conflictos': { name: 'Carlos', gender: 'male', role: 'Compañero de trabajo testarudo' },
         'Charla Casual': { name: 'Sra. Paqui', gender: 'female', role: 'Vecina cotilla pero amable' },
-        'Encuentro Social': { name: 'Sofía', gender: 'female', role: 'Amiga cercana o cita' }
+        'Encuentro Social': { name: 'Sofía', gender: 'female', role: 'Amiga cercana o cita' },
+        'Negociación Salarial': { name: 'Director General', gender: 'male', role: 'Jefe exigente pero justo', is_premium: true }
     },
 
     startRoleplay: (scenario) => {
@@ -789,6 +790,9 @@ const app = {
             const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
 
             // Prepare payload with personalization
+            // Check if current scenario is premium
+            const isPremium = app.currentScenarioCharacter && app.currentScenarioCharacter.is_premium;
+
             const payload = {
                 text: JSON.stringify(app.roleplayHistory),
                 module: 'roleplay',
@@ -796,7 +800,11 @@ const app = {
                     name: profile.name || '',
                     gender: profile.gender || ''
                 },
-                scenario_context: app.currentScenarioCharacter || {}
+                user_email: profile.email || '', // Send email for premium verification
+                scenario_context: {
+                    ...(app.currentScenarioCharacter || {}),
+                    is_premium: isPremium || false
+                }
             };
 
             const response = await fetch(`${app.apiUrl}/analyze`, {
@@ -822,9 +830,15 @@ const app = {
 
             // If the error object has the message from our throw new Error(`${response.status}: ${detailedError}`)
             // we should show that.
+            // If the error object has the message from our throw new Error(`${response.status}: ${detailedError}`)
+            // we should show that.
             if (error.message && error.message.includes(':')) {
                 errorMsg = error.message; // e.g. "401: Error de autenticación..."
-                // Strip status code for cleaner toast if possible, or keep it for debug
+                // Strip status code for cleaner toast if possible
+                if (errorMsg.includes('403')) {
+                    errorMsg = "🔒 Función Premium. Mejora tu cuenta para acceder.";
+                    app.showScreen('roleplay'); // Go back to selector
+                }
             } else if (error.message.includes('401')) {
                 errorMsg = 'Error de autenticación: Verifica tu API KEY.';
             } else if (error.message.includes('500')) {
@@ -833,7 +847,11 @@ const app = {
             }
 
             app.showToast(errorMsg, 'error');
-            app.addChatMessage(`Error: ${errorMsg}`, 'system');
+
+            // Only add error chat bubble if it's NOT a premium rejection (so we don't pollute chat)
+            if (!errorMsg.includes('Premium')) {
+                app.addChatMessage(`Error: ${errorMsg}`, 'system');
+            }
         }
     },
 

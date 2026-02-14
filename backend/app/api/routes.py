@@ -14,6 +14,30 @@ async def analyze_text(request: TextRequest):
     Delegates prompt formatting to the prompt_router and calls Claude API.
     """
     MAX_INPUT_LENGTH = 15000 # Increased for roleplay history
+    
+    # --- PREMIUM LOGIC START ---
+    # Hardcoded list for MVP. In production, this would be a DB check.
+    PREMIUM_USERS = [
+        "andrealan2003@gmail.com"
+    ]
+    
+    # Check for Premium Scenarios
+    is_premium_scenario = False
+    if request.module == 'roleplay' and request.scenario_context:
+        # Check for explicit flag in context (sent from frontend)
+        if request.scenario_context.get('is_premium', False):
+            is_premium_scenario = True
+            
+    if is_premium_scenario:
+        user_email = request.user_email
+        if not user_email or user_email not in PREMIUM_USERS:
+            # Rejection
+            raise HTTPException(
+                status_code=403, 
+                detail="Esta función es exclusiva para usuarios Premium ⭐. Actualiza tu cuenta para acceder."
+            )
+    # --- PREMIUM LOGIC END ---
+
     if len(request.text) > MAX_INPUT_LENGTH:
         raise HTTPException(status_code=400, detail=f"El texto es demasiado largo (máx {MAX_INPUT_LENGTH} caracteres).")
 
