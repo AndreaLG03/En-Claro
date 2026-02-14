@@ -170,3 +170,61 @@ else:
     @app.get("/")
     async def root():
         return {"message": "API running, but frontend files not found. Check server logs."}
+
+@app.get("/debug-system")
+async def debug_system():
+    """Diagnostic endpoint to find where files are hidden"""
+    import os
+    cwd = os.getcwd()
+    
+    # List files in CWD
+    files_in_cwd = []
+    try:
+        files_in_cwd = os.listdir(cwd)
+    except Exception as e:
+        files_in_cwd = [str(e)]
+        
+    # Walk up to find 'frontend'
+    walk_up = []
+    current = Path(cwd)
+    for _ in range(4):
+        items = []
+        try:
+            items = [p.name for p in current.iterdir()]
+        except:
+            items = ["error"]
+        walk_up.append({str(current): items})
+        current = current.parent
+        
+    # Check specific paths
+    check_paths = [
+        "/opt/render/project/src",
+        "/opt/render/project/src/frontend",
+        "/opt/render/project/src/backend",
+        str(Path(__file__).resolve().parent), # app dir
+        str(Path(__file__).resolve().parent.parent), # backend dir
+        str(Path(__file__).resolve().parent.parent.parent), # root dir
+    ]
+    
+    path_status = {}
+    for p in check_paths:
+        path_obj = Path(p)
+        status = "missing"
+        if path_obj.exists():
+            status = "exists"
+            if path_obj.is_dir():
+                try:
+                    status += f" (contents: {os.listdir(p)})"
+                except:
+                    status += " (dir, list failed)"
+        path_status[p] = status
+
+    return {
+        "cwd": cwd,
+        "files_in_cwd": files_in_cwd,
+        "walk_up": walk_up,
+        "path_status": path_status,
+        "env_render": os.environ.get("RENDER"),
+        "frontend_dir_variable": str(FRONTEND_DIR),
+        "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False
+    }
