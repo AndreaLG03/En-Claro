@@ -89,9 +89,9 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 app = FastAPI(
     title="En Claro API",
-    description="App de apoyo cognitivo para personas autistas",
-    version="0.1.0",
-    lifespan=lifespan
+    description="Backend for En Claro cognitive support app",
+    version="1.0.0",
+    # lifespan=lifespan # DISABLED TO DEBUG HANG
 )
 
 # Trust Proxy Headers (for Render SSL termination)
