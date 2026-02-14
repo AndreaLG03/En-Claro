@@ -29,9 +29,8 @@ async def lifespan(app: FastAPI):
         from .config import settings
         logger.info(f"Database URL Configured: {'postgres' in settings.DATABASE_URL if settings.DATABASE_URL else 'sqlite (default)'}")
         
-        # TEMPORARY: Commented out to debug deployment hang
-        # init_db()
-        logger.info("Database initialized successfully (SKIPPED).")
+        init_db()
+        logger.info("Database initialized successfully.")
     except Exception as e:
         logger.exception(f"CRITICAL: Database initialization failed: {e}")
         # We continue letting the app start so we can at least serve the frontend/debug endpoints
@@ -91,7 +90,7 @@ app = FastAPI(
     title="En Claro API",
     description="Backend for En Claro cognitive support app",
     version="1.0.0",
-    # lifespan=lifespan # DISABLED TO DEBUG HANG
+    lifespan=lifespan
 )
 
 # Trust Proxy Headers (for Render SSL termination)
