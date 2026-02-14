@@ -21,6 +21,8 @@ from .config import settings
 setup_logging()
 logger = logging.getLogger(__name__)
 
+STARTUP_ERRORS = []
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic
@@ -33,10 +35,9 @@ async def lifespan(app: FastAPI):
         logger.info("Database initialized successfully.")
     except Exception as e:
         logger.exception(f"CRITICAL: Database initialization failed: {e}")
+        STARTUP_ERRORS.append(f"DB Init Failed: {str(e)}")
         # We continue letting the app start so we can at least serve the frontend/debug endpoints
         # This prevents the "No open HTTP ports" error if DB is the cause of the hang
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
         
     yield
     # Shutdown logic
@@ -245,7 +246,8 @@ async def debug_system():
         "path_status": path_status,
         "env_render": os.environ.get("RENDER"),
         "frontend_dir_variable": str(FRONTEND_DIR),
-        "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False
+        "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False,
+        "startup_errors": STARTUP_ERRORS
     }
 
 # Catch-all for other static files or client-side routing
