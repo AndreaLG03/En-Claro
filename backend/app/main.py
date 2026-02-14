@@ -224,6 +224,30 @@ async def debug_system():
         "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False
     }
 
+    # Enhanced DB Diagnostics
+    try:
+        db_path = Path("enclaro.db")
+        path_status["db_file"] = f"Exists: {db_path.exists()}, Size: {db_path.stat().st_size if db_path.exists() else 'N/A'}"
+        path_status["cwd_writable"] = os.access(os.getcwd(), os.W_OK)
+        
+        # Try to connect and list tables
+        from sqlalchemy import inspect
+        from .models.db import engine
+        insp = inspect(engine)
+        path_status["db_tables"] = insp.get_table_names()
+    except Exception as e:
+        path_status["db_error"] = str(e)
+
+    return {
+        "cwd": cwd,
+        "files_in_cwd": files_in_cwd,
+        "walk_up": walk_up,
+        "path_status": path_status,
+        "env_render": os.environ.get("RENDER"),
+        "frontend_dir_variable": str(FRONTEND_DIR),
+        "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False
+    }
+
 # Catch-all for other static files or client-side routing
 # MUST BE LAST
 @app.get("/{full_path:path}")
