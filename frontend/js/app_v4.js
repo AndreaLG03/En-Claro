@@ -1307,7 +1307,7 @@ const app = {
         const welcomeText = `${welcomeWord} a En Claro`;
 
         // Update Dashboard Welcome (Settings Menu)
-        const settingsWelcome = document.querySelector('#settings-menu button:first-child span');
+        const settingsWelcome = document.getElementById('settings-welcome-text');
         if (settingsWelcome) settingsWelcome.textContent = welcomeText;
 
         // Update Onboarding Title
