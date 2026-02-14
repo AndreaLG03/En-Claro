@@ -40,18 +40,29 @@ async def lifespan(app: FastAPI):
 # Local structure: ../frontend (relative to backend/app/main.py)
 
 # Robustly find the frontend directory
-current_dir = Path(__file__).resolve().parent # backend/app
-backend_dir = current_dir.parent # backend
-project_root = backend_dir.parent # Antigravity (or root in Render)
+def find_frontend_dir():
+    current = Path(__file__).resolve().parent
+    # Walk up 4 levels max (backend/app/main.py -> backend/app -> backend -> src -> root)
+    for _ in range(5):
+        if (current / "frontend").exists() and (current / "frontend").is_dir():
+            return current / "frontend"
+        current = current.parent
+        if current == current.parent: # Reached root
+            break
+            
+    # Fallback to absolute paths common in Render
+    if Path("/opt/render/project/src/frontend").exists():
+        return Path("/opt/render/project/src/frontend")
+        
+    return None
 
-# Try standard location first
-frontend_path = project_root / "frontend"
+frontend_path = find_frontend_dir()
 
-if not frontend_path.exists():
-    # Fallback for different structures or Docker
-    logger.warning(f"Frontend not found at {frontend_path}, trying alternative...")
-    # Check if we are in 'src' (Render sometimes)
-    frontend_path = Path("/opt/render/project/src/frontend")
+if not frontend_path:
+    logger.error(f"CRITICAL: Frontend directory NOT found. Searched from {Path(__file__).resolve().parent}")
+    # Fallback used in defining BASE_DIR later, but this early check helps logs
+else:
+    logger.info(f"Frontend found at: {frontend_path}")
 
 logger.info(f"Serving frontend from: {frontend_path}")
 
@@ -97,11 +108,13 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 # Define paths
+# Define paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
+# Use the robustly found path, or fallback to relative for local dev if find_frontend_dir failed (which shouldn't happen if structure is right)
+FRONTEND_DIR = frontend_path if frontend_path else (BASE_DIR / "frontend")
 
 # Serve Frontend Static Files
-if FRONTEND_DIR.exists():
+if FRONTEND_DIR and FRONTEND_DIR.exists():
     # Mount specific directories to specific paths
     app.mount("/css", StaticFiles(directory=FRONTEND_DIR / "css"), name="css")
     app.mount("/js", StaticFiles(directory=FRONTEND_DIR / "js"), name="js")
@@ -131,17 +144,22 @@ if FRONTEND_DIR.exists():
         return FileResponse(FRONTEND_DIR / "index.html")
 
     # Catch-all for other static files or client-side routing
+    # Catch-all for other static files or client-side routing
     @app.get("/{full_path:path}")
     async def catch_all(full_path: str):
         file_path = FRONTEND_DIR / full_path
         if file_path.is_file():
             return FileResponse(file_path)
-        # Fallback to index.html for SPA routing (if we had any), or 404
-        # For a simple site, returning index.html for everything might be confusing if assets are missing
-        # But for now changing to only return index if it's not a file
+            
+        # If accessing a specific static file (js, css, png) and it's missing, return 404
+        # This prevents "SyntaxError: <" when script tags get index.html
+        if "." in full_path and not full_path.endswith(".html"):
+            return JSONResponse(status_code=404, content={"detail": "File not found"})
+
+        # Fallback to index.html for SPA routing
         return FileResponse(FRONTEND_DIR / "index.html")
 else:
     logger.warning(f"Frontend directory not found at {FRONTEND_DIR}")
     @app.get("/")
     async def root():
-        return {"message": "API running, but frontend files not found."}
+        return {"message": "API running, but frontend files not found. Check server logs."}
