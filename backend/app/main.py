@@ -248,7 +248,7 @@ async def debug_system():
         "frontend_dir_variable": str(FRONTEND_DIR),
         "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False,
         "startup_errors": STARTUP_ERRORS,
-        "app_version": "1.1.0 (tmp-db-fix)"
+        "app_version": "1.1.1 (fix-settings-crash)"
     }
 
 # Catch-all for other static files or client-side routing

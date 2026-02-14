@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: Optional[str] = None
     SECRET_KEY: str = "secret-key-for-dev"
     RENDER: bool = False # Render sets this automatically
+    DATABASE_URL: Optional[str] = None
     
     # Environment file configuration
     model_config = SettingsConfigDict(
