@@ -9,7 +9,7 @@ const app = {
             // Prevent infinite loops in error reporting
             if (msg.includes('Script error')) return;
 
-            const errorMsg = `Error Critical JS: ${msg}\nLine: ${line}`;
+            const errorMsg = `Error Critical JS: ${msg}\nFile: ${url}\nLine: ${line}`;
             console.error(errorMsg);
             alert(errorMsg); // Force visible feedback for the user
         };
