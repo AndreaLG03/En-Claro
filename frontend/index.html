@@ -582,13 +582,15 @@
             <div id="roleplay-selector" class="card">
                 <h3 style="margin-bottom: var(--spacing-md); text-align: center;">Elige un escenario:</h3>
                 <div class="scenario-grid">
-                    <div class="scenario-card" onclick="app.startRoleplay('Entrevista de Trabajo')">
-                        <i data-lucide="briefcase"></i>
-                        <span>Entrevista</span>
+                    <div class="scenario-card premium-card" onclick="app.startRoleplay('Entrevista de Trabajo')"
+                        style="border: 2px solid #ffd700; background: rgba(255, 215, 0, 0.05);">
+                        <div class="icon-roleplay" style="color: #ffd700;"><i data-lucide="lock"></i></div>
+                        <span>Entrevista (Premium)</span>
                     </div>
-                    <div class="scenario-card" onclick="app.startRoleplay('Cita Médica')">
-                        <i data-lucide="stethoscopes"></i>
-                        <span>Médico</span>
+                    <div class="scenario-card premium-card" onclick="app.startRoleplay('Cita Médica')"
+                        style="border: 2px solid #ffd700; background: rgba(255, 215, 0, 0.05);">
+                        <div class="icon-roleplay" style="color: #ffd700;"><i data-lucide="lock"></i></div>
+                        <span>Médico (Premium)</span>
                     </div>
                     <div class="scenario-card" onclick="app.startRoleplay('Encuentro Social')">
                         <i data-lucide="coffee"></i>
@@ -599,9 +601,10 @@
                         <span>Vecino/Casual</span>
                     </div>
                     <!-- New Conflict Scenario -->
-                    <div class="scenario-card conflict-card" onclick="app.startRoleplay('Resolución de Conflictos')">
-                        <div class="icon-roleplay" style="color: #ff6b6b;"><i data-lucide="alert-circle"></i></div>
-                        <span>Discusión/Conflicto</span>
+                    <div class="scenario-card premium-card" onclick="app.startRoleplay('Resolución de Conflictos')"
+                        style="border: 2px solid #ffd700; background: rgba(255, 215, 0, 0.05);">
+                        <div class="icon-roleplay" style="color: #ffd700;"><i data-lucide="lock"></i></div>
+                        <span>Discusión/Conflicto (Premium)</span>
                     </div>
                     <!-- Premium Scenario -->
                     <div class="scenario-card premium-card" onclick="app.startRoleplay('Negociación Salarial')"

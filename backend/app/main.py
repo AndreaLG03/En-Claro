@@ -9,6 +9,7 @@ from pathlib import Path
 from .api.routes import router
 from .services.claude_client import close_client
 from .utils.logging_config import setup_logging
+from .models.db import init_db
 
 from starlette.middleware.sessions import SessionMiddleware
 from .api.auth import router as auth_router
@@ -22,6 +23,12 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Startup logic
     logger.info("Starting En Claro API...")
+    try:
+        init_db()
+        logger.info("Database initialized successfully.")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+        
     yield
     # Shutdown logic
     logger.info("Shutting down En Claro API...")

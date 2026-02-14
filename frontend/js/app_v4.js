@@ -242,6 +242,9 @@ const app = {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 seconds
 
+            // Get User Profile
+            const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+
             const response = await fetch(`${app.apiUrl}/analyze`, {
                 method: 'POST',
                 headers: {
@@ -249,7 +252,12 @@ const app = {
                 },
                 body: JSON.stringify({
                     text: finalText,
-                    module: module
+                    module: module,
+                    user_profile: {
+                        name: profile.name || '',
+                        gender: profile.gender || ''
+                    },
+                    user_email: profile.email || ''
                 }),
                 signal: controller.signal
             });
@@ -277,8 +285,8 @@ const app = {
                 throw new Error("El servidor devolvió una respuesta vacía.");
             }
 
-            // Save to history before displaying
-            app.saveToHistory(module, text, data.result);
+            // Server saves history now. No need for local storage.
+            // app.saveToHistory(module, text, data.result);
 
             // Small delay to ensure loading screen is visible enough
             setTimeout(() => {
@@ -318,30 +326,57 @@ const app = {
         }
     },
 
-    loadHistory: () => {
+    loadHistory: async () => {
         const historyList = document.getElementById('history-list');
         if (!historyList) return;
 
-        const history = JSON.parse(localStorage.getItem('enclaro_history') || '[]');
+        historyList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Cargando historial...</div>';
 
-        if (history.length === 0) {
-            historyList.innerHTML = '<div class="card" style="text-align:center;"><p>No tienes análisis guardados todavía.</p></div>';
+        const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+        if (!profile.email) {
+            historyList.innerHTML = `
+                <div class="card" style="text-align:center;">
+                    <p>Inicia sesión o añade tu email en "Mi Cuenta" para ver tu historial en la nube.</p>
+                    <button class="btn btn-secondary" onclick="app.showScreen('profile')">Ir a Mi Cuenta</button>
+                </div>`;
             return;
         }
 
-        historyList.innerHTML = history.map(item => `
-            <div class="card history-item" style="cursor:pointer;" onclick="app.displayResult('${item.result.replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "")}', '${item.module}')">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span class="badge" style="background:var(--grad-${item.module}); color:white; padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:700;">${app.getModuleLabel(item.module)}</span>
-                    <small style="color:var(--text-muted);">${item.date}</small>
-                </div>
-                <p style="font-size:0.9rem; color:var(--text-color); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                    "${item.input.substring(0, 60)}${item.input.length > 60 ? '...' : ''}"
-                </p>
-            </div>
-        `).join('');
+        try {
+            const response = await fetch(`${app.apiUrl}/history?email=${encodeURIComponent(profile.email)}`);
+            if (!response.ok) throw new Error('Error al cargar historial');
 
-        if (window.lucide) lucide.createIcons();
+            const history = await response.json();
+
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="card" style="text-align:center;"><p>No tienes análisis guardados todavía.</p></div>';
+                return;
+            }
+
+            historyList.innerHTML = history.map(item => {
+                // Parse date if possible
+                const dateStr = new Date(item.timestamp).toLocaleDateString() + ' ' + new Date(item.timestamp).toLocaleTimeString();
+                // Clean result for display
+                const safeResult = item.result_text.replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "");
+
+                return `
+                <div class="card history-item" style="cursor:pointer;" onclick="app.displayResult('${safeResult}', '${item.module}')">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span class="badge" style="background:var(--grad-${item.module}); color:white; padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:700;">${app.getModuleLabel(item.module)}</span>
+                        <small style="color:var(--text-muted);">${dateStr}</small>
+                    </div>
+                    <p style="font-size:0.9rem; color:var(--text-color); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        "${(item.module === 'roleplay' ? 'Sesión de Roleplay' : item.input_text || '').substring(0, 60)}..."
+                    </p>
+                </div>
+            `}).join('');
+
+            if (window.lucide) lucide.createIcons();
+
+        } catch (e) {
+            console.error("Failed to load history", e);
+            historyList.innerHTML = '<div class="card" style="text-align:center; color: red;"><p>Error al cargar historial de la nube.</p></div>';
+        }
     },
 
     getModuleLabel: (module) => {
@@ -735,9 +770,9 @@ const app = {
 
     // Roster configuration
     scenarioConfig: {
-        'Entrevista de Trabajo': { name: 'Sr. Martínez', gender: 'male', role: 'Entrevistador de RRHH serio' },
-        'Cita Médica': { name: 'Dra. García', gender: 'female', role: 'Doctora empática y profesional' },
-        'Resolución de Conflictos': { name: 'Carlos', gender: 'male', role: 'Compañero de trabajo testarudo' },
+        'Entrevista de Trabajo': { name: 'Sr. Martínez', gender: 'male', role: 'Entrevistador de RRHH serio', is_premium: true },
+        'Cita Médica': { name: 'Dra. García', gender: 'female', role: 'Doctora empática y profesional', is_premium: true },
+        'Resolución de Conflictos': { name: 'Carlos', gender: 'male', role: 'Compañero de trabajo testarudo', is_premium: true },
         'Charla Casual': { name: 'Sra. Paqui', gender: 'female', role: 'Vecina cotilla pero amable' },
         'Encuentro Social': { name: 'Sofía', gender: 'female', role: 'Amiga cercana o cita' },
         'Negociación Salarial': { name: 'Director General', gender: 'male', role: 'Jefe exigente pero justo', is_premium: true }

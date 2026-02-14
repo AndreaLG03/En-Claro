@@ -1,6 +1,8 @@
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 from ..models.schemas import TextRequest, AIResponse
+from ..models.db import get_db, User, AnalysisHistory
 from ..services.prompt_router import get_prompts
 from ..services.claude_client import call_claude
 
@@ -8,7 +10,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 @router.post("/analyze", response_model=AIResponse)
-async def analyze_text(request: TextRequest):
+async def analyze_text(request: TextRequest, db: Session = Depends(get_db)):
     """
     Analyzes text using the specified module.
     Delegates prompt formatting to the prompt_router and calls Claude API.
@@ -56,7 +58,50 @@ async def analyze_text(request: TextRequest):
             user_prompt=user_prompt
         )
 
+        # --- HISTORY SAVING START ---
+        if request.user_email:
+            try:
+                # Find or create user
+                user = db.query(User).filter(User.email == request.user_email).first()
+                if not user:
+                    # Check if they should be premium based on hardcoded list
+                    is_premium = request.user_email in PREMIUM_USERS
+                    user = User(email=request.user_email, is_premium=is_premium)
+                    db.add(user)
+                    db.commit()
+                    db.refresh(user)
+                
+                # Save history
+                history_item = AnalysisHistory(
+                    user_email=user.email,
+                    module=request.module,
+                    input_text=request.text,
+                    result_text=result_text,
+                    meta_data=request.scenario_context or {}
+                )
+                db.add(history_item)
+                db.commit()
+            except Exception as e:
+                logger.error(f"Failed to save history: {e}")
+                # Don't fail the request if history saving fails
+        # --- HISTORY SAVING END ---
+
         return AIResponse(result=result_text)
+
+@router.get("/history")
+def get_history(email: str, db: Session = Depends(get_db)):
+    """Fetch analysis history for a specific user email."""
+    if not email:
+        return []
+        
+    history = db.query(AnalysisHistory).filter(AnalysisHistory.user_email == email).order_by(AnalysisHistory.timestamp.desc()).limit(50).all()
+    return [{
+        "id": h.id,
+        "module": h.module,
+        "result_text": h.result_text,
+        "timestamp": h.timestamp.isoformat(),
+        "meta_data": h.meta_data
+    } for h in history]
 
     except ValueError as ve:
         logger.warning(f"Validation error in analyze_text: {str(ve)}")
