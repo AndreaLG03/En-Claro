@@ -151,20 +151,8 @@ if FRONTEND_DIR and FRONTEND_DIR.exists():
         return FileResponse(FRONTEND_DIR / "index.html")
 
     # Catch-all for other static files or client-side routing
-    # Catch-all for other static files or client-side routing
-    @app.get("/{full_path:path}")
-    async def catch_all(full_path: str):
-        file_path = FRONTEND_DIR / full_path
-        if file_path.is_file():
-            return FileResponse(file_path)
-            
-        # If accessing a specific static file (js, css, png) and it's missing, return 404
-        # This prevents "SyntaxError: <" when script tags get index.html
-        if "." in full_path and not full_path.endswith(".html"):
-            return JSONResponse(status_code=404, content={"detail": "File not found"})
+    # catch_all moved to end
 
-        # Fallback to index.html for SPA routing
-        return FileResponse(FRONTEND_DIR / "index.html")
 else:
     logger.warning(f"Frontend directory not found at {FRONTEND_DIR}")
     @app.get("/")
@@ -228,3 +216,20 @@ async def debug_system():
         "frontend_dir_variable": str(FRONTEND_DIR),
         "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False
     }
+
+# Catch-all for other static files or client-side routing
+# MUST BE LAST
+@app.get("/{full_path:path}")
+async def catch_all(full_path: str):
+    file_path = FRONTEND_DIR / full_path
+    if file_path and file_path.is_file():
+        return FileResponse(file_path)
+        
+    # If accessing a specific static file (js, css, png) and it's missing, return 404
+    if "." in full_path and not full_path.endswith(".html"):
+        return JSONResponse(status_code=404, content={"detail": "File not found"})
+
+    # Fallback to index.html for SPA routing
+    if FRONTEND_DIR:
+        return FileResponse(FRONTEND_DIR / "index.html")
+    return JSONResponse(status_code=404, content={"detail": "Frontend not found"})
