@@ -29,8 +29,9 @@ async def lifespan(app: FastAPI):
         from .config import settings
         logger.info(f"Database URL Configured: {'postgres' in settings.DATABASE_URL if settings.DATABASE_URL else 'sqlite (default)'}")
         
-        init_db()
-        logger.info("Database initialized successfully.")
+        # TEMPORARY: Commented out to debug deployment hang
+        # init_db()
+        logger.info("Database initialized successfully (SKIPPED).")
     except Exception as e:
         logger.exception(f"CRITICAL: Database initialization failed: {e}")
         # We continue letting the app start so we can at least serve the frontend/debug endpoints
