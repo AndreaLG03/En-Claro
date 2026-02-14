@@ -88,20 +88,6 @@ async def analyze_text(request: TextRequest, db: Session = Depends(get_db)):
 
         return AIResponse(result=result_text)
 
-@router.get("/history")
-def get_history(email: str, db: Session = Depends(get_db)):
-    """Fetch analysis history for a specific user email."""
-    if not email:
-        return []
-        
-    history = db.query(AnalysisHistory).filter(AnalysisHistory.user_email == email).order_by(AnalysisHistory.timestamp.desc()).limit(50).all()
-    return [{
-        "id": h.id,
-        "module": h.module,
-        "result_text": h.result_text,
-        "timestamp": h.timestamp.isoformat(),
-        "meta_data": h.meta_data
-    } for h in history]
 
     except ValueError as ve:
         logger.warning(f"Validation error in analyze_text: {str(ve)}")
@@ -126,3 +112,18 @@ def get_history(email: str, db: Session = Depends(get_db)):
             status_code=500,
             detail=f"Error técnico: {str(e)}"
         )
+
+@router.get("/history")
+def get_history(email: str, db: Session = Depends(get_db)):
+    """Fetch analysis history for a specific user email."""
+    if not email:
+        return []
+        
+    history = db.query(AnalysisHistory).filter(AnalysisHistory.user_email == email).order_by(AnalysisHistory.timestamp.desc()).limit(50).all()
+    return [{
+        "id": h.id,
+        "module": h.module,
+        "result_text": h.result_text,
+        "timestamp": h.timestamp.isoformat(),
+        "meta_data": h.meta_data
+    } for h in history]
