@@ -238,7 +238,7 @@ async def debug_system():
         "frontend_dir_variable": str(FRONTEND_DIR),
         "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False,
         "startup_errors": STARTUP_ERRORS,
-        "app_version": "1.1.3 (cache-bust-v5)"
+        "app_version": "1.1.4 (strict-404-fix)"
     }
 
 # Catch-all for other static files or client-side routing
@@ -249,9 +249,12 @@ async def catch_all(full_path: str):
     if file_path and file_path.is_file():
         return FileResponse(file_path)
         
-    # If accessing a specific static file (js, css, png) and it's missing, return 404
-    if "." in full_path and not full_path.endswith(".html"):
-        return JSONResponse(status_code=404, content={"detail": "File not found"})
+    # If accessing a specific static file (js, css, png, map) and it's missing, return 404
+    # This prevents "HTML as JS" syntax errors
+    if "." in full_path:
+        ext = full_path.split(".")[-1].lower()
+        if ext in ["js", "css", "png", "jpg", "jpeg", "gif", "ico", "map", "json"]:
+            return JSONResponse(status_code=404, content={"detail": "File not found"})
 
     # Fallback to index.html for SPA routing
     if FRONTEND_DIR:
