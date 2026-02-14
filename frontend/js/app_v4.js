@@ -1447,5 +1447,10 @@ document.addEventListener('DOMContentLoaded', () => {
     app.checkAuth();
     app.checkBackendStatus();
 
+    // Init Lucide Icons
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+
     console.log('App Initialized');
 });

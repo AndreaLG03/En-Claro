@@ -138,22 +138,12 @@ if FRONTEND_DIR and FRONTEND_DIR.exists():
     if (FRONTEND_DIR / "assets").exists():
         app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
 
-    @app.get("/")
-    async def read_root():
-        index_path = FRONTEND_DIR / "index.html"
-        if index_path.exists():
-            return FileResponse(index_path)
-        return {"status": "ok", "message": "Backend is running, but frontend not found."}
-
-    @app.get("/health")
-    async def health_check():
-        return {"status": "ok"}
-    
     # Mount assets if they exist (newly added for logo)
     assets_dir = FRONTEND_DIR / "assets"
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
+    # One single root handler
     @app.get("/")
     async def serve_index():
         return FileResponse(FRONTEND_DIR / "index.html")
@@ -248,7 +238,7 @@ async def debug_system():
         "frontend_dir_variable": str(FRONTEND_DIR),
         "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False,
         "startup_errors": STARTUP_ERRORS,
-        "app_version": "1.1.1 (fix-settings-crash)"
+        "app_version": "1.1.2 (fix-js-syntax)"
     }
 
 # Catch-all for other static files or client-side routing
