@@ -193,12 +193,15 @@ async def debug_system():
         if fpath.exists():
             path_status[key] += f", Size: {fpath.stat().st_size}b"
 
-    return {
+    return JSONResponse(content={
         "cwd": cwd,
         "files_in_cwd": files_in_cwd,
         "walk_up": walk_up,
         "path_status": path_status,
-    return JSONResponse(content={"status": "ok", "app_version": "1.2.4 (inline-js)", "env": os.getenv("RENDER", "local")})
+        "status": "ok",
+        "app_version": "1.2.4 (inline-js)",
+        "env": os.getenv("RENDER", "local")
+    })
 
 # Catch-all for other static files or client-side routing
 # MUST BE LAST
