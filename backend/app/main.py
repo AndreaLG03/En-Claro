@@ -23,6 +23,16 @@ logger = logging.getLogger(__name__)
 
 STARTUP_ERRORS = []
 
+# Middleware to force UTF-8 on all static files
+@app.middleware("http")
+async def force_utf8_middleware(request: Request, call_next):
+    response = await call_next(request)
+    content_type = response.headers.get("content-type", "")
+    if "text/html" in content_type or "application/javascript" in content_type or "text/css" in content_type:
+        if "charset" not in content_type:
+            response.headers["content-type"] = f"{content_type}; charset=utf-8"
+    return response
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic
