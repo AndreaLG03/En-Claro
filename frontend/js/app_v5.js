@@ -1454,3 +1454,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('App Initialized');
 });
+// Make app globally available for HTML onclick handlers
+window.app = app;
