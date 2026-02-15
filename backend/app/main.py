@@ -204,7 +204,7 @@ async def debug_system():
         "frontend_contents": [p.name for p in FRONTEND_DIR.iterdir()] if FRONTEND_DIR and FRONTEND_DIR.exists() else [],
         "js_dir_contents": [p.name for p in (FRONTEND_DIR / "js").iterdir()] if (FRONTEND_DIR / "js").exists() else [],
         "startup_errors": STARTUP_ERRORS,
-        "app_version": "1.1.11 (debug-enhanced-js-404)"
+        "app_version": "1.1.12 (fix-css-path-favicon)"
     }
 
 # Catch-all for other static files or client-side routing
