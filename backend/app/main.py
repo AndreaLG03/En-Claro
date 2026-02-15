@@ -238,7 +238,7 @@ async def debug_system():
         "frontend_dir_variable": str(FRONTEND_DIR),
         "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False,
         "startup_errors": STARTUP_ERRORS,
-        "app_version": "1.1.7 (no-history-debug)"
+        "app_version": "1.1.8 (static-mounts-lucide-restored)"
     }
 
 # Catch-all for other static files or client-side routing
