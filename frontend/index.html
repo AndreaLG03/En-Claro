@@ -404,11 +404,11 @@
                     <i data-lucide="user-check"></i>
                     <span id="i18n-nav-roleplay">Simulador social</span>
                 </button>
-                <!-- History (Testing with safe icon) -->
+                <!-- History (Refactored to Safe Index Mode) -->
                 <button class="btn btn-secondary btn-large menu-item"
                     style="--i: 7; margin-top: 10px; display: flex !important;" onclick="app.showScreen('history')"
                     aria-label="Ver historial de análisis guardados">
-                    <i data-lucide="clock"></i>
+                    <i data-lucide="history"></i>
                     <span id="i18n-nav-history">Historial de análisis</span>
                 </button>
                 <p
@@ -1120,18 +1120,18 @@
                     if (!response.ok) throw new Error('Error al cargar historial');
 
                     const remoteHistory = await response.json();
+                    app.currentHistory = remoteHistory;
 
                     if (remoteHistory.length === 0) {
                         historyList.innerHTML = '<div class="card" style="text-align:center;"><p>No tienes análisis guardados.</p></div>';
                         return;
                     }
 
-                    historyList.innerHTML = remoteHistory.map(item => {
+                    historyList.innerHTML = remoteHistory.map((item, index) => {
                         const dateStr = new Date(item.timestamp).toLocaleDateString();
-                        const safeResult = item.result_text.replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "");
 
                         return `
-                <div class="card history-item" style="cursor:pointer;" onclick="app.displayResult('${safeResult}', '${item.module}')">
+                <div class="card history-item" style="cursor:pointer;" onclick="app.expandHistoryItem(${index})">
                     <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                         <span class="badge" style="background:var(--grad-${item.module}); color:white;">${app.getModuleLabel(item.module)}</span>
                         <small>${dateStr}</small>
@@ -1150,378 +1150,385 @@
                 }
             },
 
+            expandHistoryItem: (index) => {
+                if (!app.currentHistory || !app.currentHistory[index]) return;
+                const item = app.currentHistory[index];
+                app.displayResult(item.result_text, item.module);
+            },
+        },
+
             getModuleLabel: (module) => {
                 const labels = {
-                    message: 'Mensaje',
-                    audio: 'Audio',
-                    glossary: 'Frase',
-                    response: 'Respuesta',
-                    routine: 'Rutina',
-                    decoder: 'Subtexto',
-                    roleplay: 'Simulacro',
-                    translator: 'Traducción'
-                };
-                return labels[module] || module;
+            message: 'Mensaje',
+            audio: 'Audio',
+            glossary: 'Frase',
+            response: 'Respuesta',
+            routine: 'Rutina',
+            decoder: 'Subtexto',
+            roleplay: 'Simulacro',
+            translator: 'Traducción'
+        };
+        return labels[module] || module;
             },
 
-            clearHistory: () => {
-                if (confirm('¿Borrar historial?')) {
-                    localStorage.removeItem('enclaro_history');
-                    app.loadHistory();
-                }
-            },
+        clearHistory: () => {
+            if (confirm('¿Borrar historial?')) {
+                localStorage.removeItem('enclaro_history');
+                app.loadHistory();
+            }
+        },
 
             recognition: null,
-            isRecording: false,
+                isRecording: false,
 
-            toggleRecording: (context = 'audio') => {
-                const btnId = `btn-record${context === 'routine' ? '-routine' : ''}`;
-                const statusId = `transcription-status${context === 'routine' ? '-routine' : ''}`;
-                const inputId = `${context}-input`;
+                    toggleRecording: (context = 'audio') => {
+                        const btnId = `btn-record${context === 'routine' ? '-routine' : ''}`;
+                        const statusId = `transcription-status${context === 'routine' ? '-routine' : ''}`;
+                        const inputId = `${context}-input`;
 
-                const btn = document.getElementById(btnId);
-                const status = document.getElementById(statusId);
-                const input = document.getElementById(inputId);
+                        const btn = document.getElementById(btnId);
+                        const status = document.getElementById(statusId);
+                        const input = document.getElementById(inputId);
 
-                if (!app.recognition) {
-                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    if (!SpeechRecognition) {
-                        app.showToast('Navegador no soporta voz.', 'error');
-                        return;
-                    }
-                    app.recognition = new SpeechRecognition();
-                    app.recognition.lang = 'es-ES';
-                    app.recognition.continuous = true;
-                    app.recognition.interimResults = true;
-
-                    app.recognition.onresult = (event) => {
-                        let finalTranscript = '';
-                        for (let i = event.resultIndex; i < event.results.length; ++i) {
-                            if (event.results[i].isFinal) {
-                                finalTranscript += event.results[i][0].transcript;
+                        if (!app.recognition) {
+                            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                            if (!SpeechRecognition) {
+                                app.showToast('Navegador no soporta voz.', 'error');
+                                return;
                             }
+                            app.recognition = new SpeechRecognition();
+                            app.recognition.lang = 'es-ES';
+                            app.recognition.continuous = true;
+                            app.recognition.interimResults = true;
+
+                            app.recognition.onresult = (event) => {
+                                let finalTranscript = '';
+                                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                                    if (event.results[i].isFinal) {
+                                        finalTranscript += event.results[i][0].transcript;
+                                    }
+                                }
+                                const currentInput = document.getElementById(app.recognition.targetInputId);
+                                if (finalTranscript && currentInput) {
+                                    const separator = currentInput.value && !currentInput.value.endsWith(' ') ? ' ' : '';
+                                    currentInput.value += separator + finalTranscript;
+                                }
+                            };
+
+                            app.recognition.onend = () => {
+                                app.isRecording = false;
+                                const activeBtn = document.getElementById(app.recognition.targetBtnId);
+                                const activeStatus = document.getElementById(app.recognition.targetStatusId);
+
+                                if (activeBtn) {
+                                    activeBtn.innerHTML = `<i data-lucide="mic"></i> Grabar Voz`;
+                                    activeBtn.classList.remove('btn-primary');
+                                }
+                                if (activeStatus) activeStatus.style.display = 'none';
+                                app.stopWaveform();
+                                if (window.lucide) lucide.createIcons();
+                            };
+
+                            app.recognition.onerror = (e) => {
+                                console.error('Speech Recognition Error:', e);
+                                app.showToast('Error en grabación.', 'error');
+                            };
                         }
-                        const currentInput = document.getElementById(app.recognition.targetInputId);
-                        if (finalTranscript && currentInput) {
-                            const separator = currentInput.value && !currentInput.value.endsWith(' ') ? ' ' : '';
-                            currentInput.value += separator + finalTranscript;
+
+                        if (app.isRecording) {
+                            app.recognition.stop();
+                        } else {
+                            app.recognition.targetInputId = inputId;
+                            app.recognition.targetBtnId = btnId;
+                            app.recognition.targetStatusId = statusId;
+
+                            app.recognition.start();
+                            app.isRecording = true;
+                            btn.innerHTML = '🛑 Detener';
+                            btn.classList.add('btn-primary');
+                            status.style.display = 'block';
+                            app.startWaveform();
                         }
-                    };
+                    },
 
-                    app.recognition.onend = () => {
-                        app.isRecording = false;
-                        const activeBtn = document.getElementById(app.recognition.targetBtnId);
-                        const activeStatus = document.getElementById(app.recognition.targetStatusId);
+                        startWaveform: () => {
+                            const status = document.getElementById('transcription-status');
+                            if (!status) return;
 
-                        if (activeBtn) {
-                            activeBtn.innerHTML = `<i data-lucide="mic"></i> Grabar Voz`;
-                            activeBtn.classList.remove('btn-primary');
-                        }
-                        if (activeStatus) activeStatus.style.display = 'none';
-                        app.stopWaveform();
-                        if (window.lucide) lucide.createIcons();
-                    };
+                            const container = document.createElement('div');
+                            container.id = 'waveform-container';
+                            container.style.display = 'flex';
+                            container.style.justifyContent = 'center';
+                            container.style.alignItems = 'flex-end';
+                            container.style.gap = '3px';
+                            container.style.height = '30px';
+                            container.style.margin = '10px 0';
 
-                    app.recognition.onerror = (e) => {
-                        console.error('Speech Recognition Error:', e);
-                        app.showToast('Error en grabación.', 'error');
-                    };
-                }
+                            for (let i = 0; i < 15; i++) {
+                                const bar = document.createElement('div');
+                                bar.className = 'waveform-bar';
+                                bar.style.width = '4px';
+                                bar.style.background = 'var(--primary-color)';
+                                bar.style.borderRadius = '2px';
+                                bar.style.height = '5px';
+                                bar.style.animation = `wave-grow ${0.5 + Math.random()}s ease-in-out infinite alternate`;
+                                container.appendChild(bar);
+                            }
 
-                if (app.isRecording) {
-                    app.recognition.stop();
-                } else {
-                    app.recognition.targetInputId = inputId;
-                    app.recognition.targetBtnId = btnId;
-                    app.recognition.targetStatusId = statusId;
+                            const old = document.getElementById('waveform-container');
+                            if (old) old.remove();
 
-                    app.recognition.start();
-                    app.isRecording = true;
-                    btn.innerHTML = '🛑 Detener';
-                    btn.classList.add('btn-primary');
-                    status.style.display = 'block';
-                    app.startWaveform();
-                }
-            },
+                            if (status.parentNode) status.parentNode.insertBefore(container, status.nextSibling);
+                        },
 
-            startWaveform: () => {
-                const status = document.getElementById('transcription-status');
-                if (!status) return;
+                            stopWaveform: () => {
+                                const container = document.getElementById('waveform-container');
+                                if (container) container.remove();
+                            },
 
-                const container = document.createElement('div');
-                container.id = 'waveform-container';
-                container.style.display = 'flex';
-                container.style.justifyContent = 'center';
-                container.style.alignItems = 'flex-end';
-                container.style.gap = '3px';
-                container.style.height = '30px';
-                container.style.margin = '10px 0';
+                                handleAudioUpload: (input, context = 'audio') => {
+                                    const file = input.files[0];
+                                    if (!file) return;
 
-                for (let i = 0; i < 15; i++) {
-                    const bar = document.createElement('div');
-                    bar.className = 'waveform-bar';
-                    bar.style.width = '4px';
-                    bar.style.background = 'var(--primary-color)';
-                    bar.style.borderRadius = '2px';
-                    bar.style.height = '5px';
-                    bar.style.animation = `wave-grow ${0.5 + Math.random()}s ease-in-out infinite alternate`;
-                    container.appendChild(bar);
-                }
+                                    app.showToast('Transcribiendo archivo...', 'info');
 
-                const old = document.getElementById('waveform-container');
-                if (old) old.remove();
+                                    const inputId = `${context}-input`;
+                                    const statusId = `transcription-status${context === 'routine' ? '-routine' : ''}`;
 
-                if (status.parentNode) status.parentNode.insertBefore(container, status.nextSibling);
-            },
+                                    const audio = new Audio(URL.createObjectURL(file));
+                                    const status = document.getElementById(statusId);
+                                    const textInput = document.getElementById(inputId);
 
-            stopWaveform: () => {
-                const container = document.getElementById('waveform-container');
-                if (container) container.remove();
-            },
+                                    if (status) {
+                                        status.style.display = 'block';
+                                        status.innerHTML = '<span class="pulse"></span> Transcribiendo...';
+                                    }
+                                    app.startWaveform();
 
-            handleAudioUpload: (input, context = 'audio') => {
-                const file = input.files[0];
-                if (!file) return;
+                                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                                    if (!SpeechRecognition) {
+                                        app.showToast('No soportado.', 'error');
+                                        return;
+                                    }
 
-                app.showToast('Transcribiendo archivo...', 'info');
+                                    const fileRec = new SpeechRecognition();
+                                    fileRec.lang = 'es-ES';
+                                    fileRec.onresult = (event) => {
+                                        if (textInput) textInput.value += (textInput.value ? ' ' : '') + event.results[0][0].transcript;
+                                    };
 
-                const inputId = `${context}-input`;
-                const statusId = `transcription-status${context === 'routine' ? '-routine' : ''}`;
+                                    fileRec.onend = () => {
+                                        if (status) status.style.display = 'none';
+                                        app.stopWaveform();
+                                    };
 
-                const audio = new Audio(URL.createObjectURL(file));
-                const status = document.getElementById(statusId);
-                const textInput = document.getElementById(inputId);
+                                    audio.onplay = () => fileRec.start();
+                                    audio.onended = () => setTimeout(() => fileRec.stop(), 500);
+                                    audio.play();
+                                },
 
-                if (status) {
-                    status.style.display = 'block';
-                    status.innerHTML = '<span class="pulse"></span> Transcribiendo...';
-                }
-                app.startWaveform();
+                                    renderMarkdown: (text) => {
+                                        if (!text) return '';
+                                        text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+                                        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                        text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                                        text = text.replace(/`(.*?)`/g, '<code>$1</code>');
+                                        text = text.replace(/^###### (.*$)/gm, '<h6>$1</h6>');
+                                        text = text.replace(/^##### (.*$)/gm, '<h5>$1</h5>');
+                                        text = text.replace(/^#### (.*$)/gm, '<h4>$1</h4>');
+                                        text = text.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+                                        text = text.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+                                        text = text.replace(/^# (.*$)/gm, '<h1>$1</h1>');
 
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!SpeechRecognition) {
-                    app.showToast('No soportado.', 'error');
-                    return;
-                }
+                                        const lines = text.split('\n');
+                                        let inList = false;
+                                        const resultLines = [];
 
-                const fileRec = new SpeechRecognition();
-                fileRec.lang = 'es-ES';
-                fileRec.onresult = (event) => {
-                    if (textInput) textInput.value += (textInput.value ? ' ' : '') + event.results[0][0].transcript;
-                };
+                                        for (let line of lines) {
+                                            const trimmedLine = line.trim();
+                                            if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+                                                if (!inList) {
+                                                    resultLines.push('<ul>');
+                                                    inList = true;
+                                                }
+                                                resultLines.push(`<li>${trimmedLine.substring(2)}</li>`);
+                                            } else {
+                                                if (inList) {
+                                                    resultLines.push('</ul>');
+                                                    inList = false;
+                                                }
+                                                resultLines.push(line);
+                                            }
+                                        }
+                                        if (inList) resultLines.push('</ul>');
 
-                fileRec.onend = () => {
-                    if (status) status.style.display = 'none';
-                    app.stopWaveform();
-                };
+                                        return resultLines.join('\n').replace(/\n/g, '<br>');
+                                    },
 
-                audio.onplay = () => fileRec.start();
-                audio.onended = () => setTimeout(() => fileRec.stop(), 500);
-                audio.play();
-            },
+                                        parseMarkdownTable: (text) => {
+                                            const lines = text.trim().split('\n');
+                                            let tableStartIndex = -1;
+                                            for (let i = 0; i < lines.length - 1; i++) {
+                                                if (lines[i].includes('|') && lines[i + 1].includes('|') && lines[i + 1].includes('-')) {
+                                                    tableStartIndex = i;
+                                                    break;
+                                                }
+                                            }
 
-            renderMarkdown: (text) => {
-                if (!text) return '';
-                text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-                text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-                text = text.replace(/`(.*?)`/g, '<code>$1</code>');
-                text = text.replace(/^###### (.*$)/gm, '<h6>$1</h6>');
-                text = text.replace(/^##### (.*$)/gm, '<h5>$1</h5>');
-                text = text.replace(/^#### (.*$)/gm, '<h4>$1</h4>');
-                text = text.replace(/^### (.*$)/gm, '<h3>$1</h3>');
-                text = text.replace(/^## (.*$)/gm, '<h2>$1</h2>');
-                text = text.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+                                            if (tableStartIndex === -1) return app.renderMarkdown(text);
 
-                const lines = text.split('\n');
-                let inList = false;
-                const resultLines = [];
+                                            const introText = lines.slice(0, tableStartIndex).join('\n').trim();
+                                            const tableLines = lines.slice(tableStartIndex);
 
-                for (let line of lines) {
-                    const trimmedLine = line.trim();
-                    if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
-                        if (!inList) {
-                            resultLines.push('<ul>');
-                            inList = true;
-                        }
-                        resultLines.push(`<li>${trimmedLine.substring(2)}</li>`);
-                    } else {
-                        if (inList) {
-                            resultLines.push('</ul>');
-                            inList = false;
-                        }
-                        resultLines.push(line);
-                    }
-                }
-                if (inList) resultLines.push('</ul>');
+                                            const html = [];
+                                            if (introText) {
+                                                html.push(app.renderMarkdown(introText));
+                                            }
 
-                return resultLines.join('\n').replace(/\n/g, '<br>');
-            },
+                                            html.push('<table>');
+                                            const headers = tableLines[0].split('|').filter(c => c.trim() !== '').map(c => `<th>${app.renderMarkdown(c.trim())}</th>`);
+                                            html.push(`<thead><tr>${headers.join('')}</tr></thead>`);
+                                            html.push('<tbody>');
+                                            for (let i = 2; i < tableLines.length; i++) {
+                                                if (!tableLines[i].includes('|')) {
+                                                    if (tableLines[i].trim() !== '') {
+                                                        html.push('</tbody></table>');
+                                                        html.push(app.renderMarkdown(tableLines.slice(i).join('\n')));
+                                                        return html.join('');
+                                                    }
+                                                    continue;
+                                                }
+                                                const cells = tableLines[i].split('|').filter(c => c.trim() !== '').map(c => `<td>${app.renderMarkdown(c.trim())}</td>`);
+                                                html.push(`<tr>${cells.join('')}</tr>`);
+                                            }
+                                            html.push('</tbody></table>');
+                                            return html.join('');
+                                        },
 
-            parseMarkdownTable: (text) => {
-                const lines = text.trim().split('\n');
-                let tableStartIndex = -1;
-                for (let i = 0; i < lines.length - 1; i++) {
-                    if (lines[i].includes('|') && lines[i + 1].includes('|') && lines[i + 1].includes('-')) {
-                        tableStartIndex = i;
-                        break;
-                    }
-                }
+                                            displayResult: (rawText, module) => {
+                                                const resultText = document.getElementById('result-text');
+                                                const skeleton = document.getElementById('result-skeleton');
 
-                if (tableStartIndex === -1) return app.renderMarkdown(text);
+                                                if (skeleton) skeleton.style.display = 'none';
+                                                if (resultText) {
+                                                    resultText.style.display = 'block';
+                                                    resultText.innerHTML = '';
+                                                }
 
-                const introText = lines.slice(0, tableStartIndex).join('\n').trim();
-                const tableLines = lines.slice(tableStartIndex);
+                                                const sections = rawText.split(/\n(?=\d\.)|^(?=\d\.)/gm).filter(s => s.trim() !== '');
 
-                const html = [];
-                if (introText) {
-                    html.push(app.renderMarkdown(introText));
-                }
+                                                sections.forEach((section, index) => {
+                                                    const sectionDiv = document.createElement('div');
+                                                    sectionDiv.className = 'result-section';
+                                                    sectionDiv.style.opacity = '0';
+                                                    sectionDiv.style.transform = 'translateY(10px)';
 
-                html.push('<table>');
-                const headers = tableLines[0].split('|').filter(c => c.trim() !== '').map(c => `<th>${app.renderMarkdown(c.trim())}</th>`);
-                html.push(`<thead><tr>${headers.join('')}</tr></thead>`);
-                html.push('<tbody>');
-                for (let i = 2; i < tableLines.length; i++) {
-                    if (!tableLines[i].includes('|')) {
-                        if (tableLines[i].trim() !== '') {
-                            html.push('</tbody></table>');
-                            html.push(app.renderMarkdown(tableLines.slice(i).join('\n')));
-                            return html.join('');
-                        }
-                        continue;
-                    }
-                    const cells = tableLines[i].split('|').filter(c => c.trim() !== '').map(c => `<td>${app.renderMarkdown(c.trim())}</td>`);
-                    html.push(`<tr>${cells.join('')}</tr>`);
-                }
-                html.push('</tbody></table>');
-                return html.join('');
-            },
+                                                    const lines = section.trim().split('\n');
+                                                    const titleText = lines[0].replace(/^\d+\.\s+/, '').replace(/^#+\s+/, '').trim();
 
-            displayResult: (rawText, module) => {
-                const resultText = document.getElementById('result-text');
-                const skeleton = document.getElementById('result-skeleton');
+                                                    const title = document.createElement('h3');
+                                                    title.textContent = titleText;
+                                                    sectionDiv.appendChild(title);
 
-                if (skeleton) skeleton.style.display = 'none';
-                if (resultText) {
-                    resultText.style.display = 'block';
-                    resultText.innerHTML = '';
-                }
+                                                    let bodyContent = lines.slice(1).join('\n').trim();
 
-                const sections = rawText.split(/\n(?=\d\.)|^(?=\d\.)/gm).filter(s => s.trim() !== '');
+                                                    if (module === 'routine' && bodyContent.includes('|')) {
+                                                        bodyContent = app.parseMarkdownTable(bodyContent);
+                                                    } else {
+                                                        bodyContent = app.renderMarkdown(bodyContent);
+                                                    }
 
-                sections.forEach((section, index) => {
-                    const sectionDiv = document.createElement('div');
-                    sectionDiv.className = 'result-section';
-                    sectionDiv.style.opacity = '0';
-                    sectionDiv.style.transform = 'translateY(10px)';
+                                                    const body = document.createElement('div');
+                                                    body.innerHTML = bodyContent;
+                                                    sectionDiv.appendChild(body);
 
-                    const lines = section.trim().split('\n');
-                    const titleText = lines[0].replace(/^\d+\.\s+/, '').replace(/^#+\s+/, '').trim();
+                                                    if (resultText) resultText.appendChild(sectionDiv);
 
-                    const title = document.createElement('h3');
-                    title.textContent = titleText;
-                    sectionDiv.appendChild(title);
+                                                    if (module === 'response' && index >= 2) {
+                                                        const copyBtn = document.createElement('button');
+                                                        copyBtn.className = 'btn btn-secondary';
+                                                        copyBtn.style.marginTop = '12px';
+                                                        copyBtn.innerHTML = '📋 Copiar respuesta';
+                                                        const textToCopy = bodyContent.replace(/<[^>]*>/g, '\n').trim();
+                                                        copyBtn.onclick = () => app.copyToClipboard(textToCopy, copyBtn);
+                                                        sectionDiv.appendChild(copyBtn);
+                                                    }
 
-                    let bodyContent = lines.slice(1).join('\n').trim();
+                                                    setTimeout(() => {
+                                                        sectionDiv.style.opacity = '1';
+                                                        sectionDiv.style.transform = 'translateY(0)';
+                                                    }, index * 100);
+                                                });
 
-                    if (module === 'routine' && bodyContent.includes('|')) {
-                        bodyContent = app.parseMarkdownTable(bodyContent);
-                    } else {
-                        bodyContent = app.renderMarkdown(bodyContent);
-                    }
+                                                const actionBtn = document.getElementById('btn-result-action');
+                                                if (module === 'message' || module === 'audio') {
+                                                    actionBtn.innerHTML = '<i data-lucide="send"></i> Ayúdame a responder';
+                                                    actionBtn.style.display = 'flex';
+                                                    actionBtn.onclick = () => {
+                                                        document.getElementById('response-input').value = document.getElementById(`${module}-input`).value;
+                                                        app.showScreen('response');
+                                                    };
+                                                } else {
+                                                    actionBtn.style.display = 'none';
+                                                }
 
-                    const body = document.createElement('div');
-                    body.innerHTML = bodyContent;
-                    sectionDiv.appendChild(body);
+                                                if (window.lucide) {
+                                                    lucide.createIcons();
+                                                }
 
-                    if (resultText) resultText.appendChild(sectionDiv);
+                                                app.showScreen('result');
+                                            },
 
-                    if (module === 'response' && index >= 2) {
-                        const copyBtn = document.createElement('button');
-                        copyBtn.className = 'btn btn-secondary';
-                        copyBtn.style.marginTop = '12px';
-                        copyBtn.innerHTML = '📋 Copiar respuesta';
-                        const textToCopy = bodyContent.replace(/<[^>]*>/g, '\n').trim();
-                        copyBtn.onclick = () => app.copyToClipboard(textToCopy, copyBtn);
-                        sectionDiv.appendChild(copyBtn);
-                    }
+                                                copyToClipboard: (text, btn) => {
+                                                    navigator.clipboard.writeText(text).then(() => {
+                                                        const oldHtml = btn.innerHTML;
+                                                        btn.innerHTML = '✅ ¡Copiado!';
+                                                        btn.classList.add('copied-feedback');
+                                                        setTimeout(() => {
+                                                            btn.innerHTML = oldHtml;
+                                                            btn.classList.remove('copied-feedback');
+                                                        }, 2000);
+                                                    });
+                                                },
 
-                    setTimeout(() => {
-                        sectionDiv.style.opacity = '1';
-                        sectionDiv.style.transform = 'translateY(0)';
-                    }, index * 100);
-                });
+                                                    roleplayHistory: [],
+                                                        currentScenario: '',
+                                                            currentScenarioCharacter: null,
 
-                const actionBtn = document.getElementById('btn-result-action');
-                if (module === 'message' || module === 'audio') {
-                    actionBtn.innerHTML = '<i data-lucide="send"></i> Ayúdame a responder';
-                    actionBtn.style.display = 'flex';
-                    actionBtn.onclick = () => {
-                        document.getElementById('response-input').value = document.getElementById(`${module}-input`).value;
-                        app.showScreen('response');
-                    };
-                } else {
-                    actionBtn.style.display = 'none';
-                }
+                                                                scenarioConfig: {
+            'Entrevista de Trabajo': { name: 'Sr. Martínez', gender: 'male', role: 'Entrevistador de RRHH serio', is_premium: true },
+            'Cita Médica': { name: 'Dra. García', gender: 'female', role: 'Doctora empática y profesional', is_premium: true },
+            'Resolución de Conflictos': { name: 'Carlos', gender: 'male', role: 'Compañero de trabajo testarudo', is_premium: true },
+            'Charla Casual': { name: 'Sra. Paqui', gender: 'female', role: 'Vecina cotilla pero amable' },
+            'Encuentro Social': { name: 'Sofía', gender: 'female', role: 'Amiga cercana o cita' },
+            'Negociación Salarial': { name: 'Director General', gender: 'male', role: 'Jefe exigente pero justo', is_premium: true }
+        },
 
-                if (window.lucide) {
-                    lucide.createIcons();
-                }
+        startRoleplay: (scenario) => {
+            app.currentScenario = scenario;
 
-                app.showScreen('result');
-            },
+            const config = app.scenarioConfig[scenario];
+            if (config) {
+                app.currentScenarioCharacter = config;
+                app.currentVoiceGender = config.gender;
+                app.showToast(`Escenario con: ${config.name}`, 'info');
+            } else {
+                app.currentScenarioCharacter = null;
+                app.currentVoiceGender = 'neutral';
+            }
 
-            copyToClipboard: (text, btn) => {
-                navigator.clipboard.writeText(text).then(() => {
-                    const oldHtml = btn.innerHTML;
-                    btn.innerHTML = '✅ ¡Copiado!';
-                    btn.classList.add('copied-feedback');
-                    setTimeout(() => {
-                        btn.innerHTML = oldHtml;
-                        btn.classList.remove('copied-feedback');
-                    }, 2000);
-                });
-            },
+            app.roleplayHistory = [
+                { role: 'system', content: `Escenario: ${scenario}` }
+            ];
 
-            roleplayHistory: [],
-            currentScenario: '',
-            currentScenarioCharacter: null,
+            document.getElementById('roleplay-selector').style.display = 'none';
+            document.getElementById('roleplay-session').style.display = 'block';
+            document.getElementById('chat-container').innerHTML = '';
+            document.getElementById('roleplay-input').value = '';
 
-            scenarioConfig: {
-                'Entrevista de Trabajo': { name: 'Sr. Martínez', gender: 'male', role: 'Entrevistador de RRHH serio', is_premium: true },
-                'Cita Médica': { name: 'Dra. García', gender: 'female', role: 'Doctora empática y profesional', is_premium: true },
-                'Resolución de Conflictos': { name: 'Carlos', gender: 'male', role: 'Compañero de trabajo testarudo', is_premium: true },
-                'Charla Casual': { name: 'Sra. Paqui', gender: 'female', role: 'Vecina cotilla pero amable' },
-                'Encuentro Social': { name: 'Sofía', gender: 'female', role: 'Amiga cercana o cita' },
-                'Negociación Salarial': { name: 'Director General', gender: 'male', role: 'Jefe exigente pero justo', is_premium: true }
-            },
-
-            startRoleplay: (scenario) => {
-                app.currentScenario = scenario;
-
-                const config = app.scenarioConfig[scenario];
-                if (config) {
-                    app.currentScenarioCharacter = config;
-                    app.currentVoiceGender = config.gender;
-                    app.showToast(`Escenario con: ${config.name}`, 'info');
-                } else {
-                    app.currentScenarioCharacter = null;
-                    app.currentVoiceGender = 'neutral';
-                }
-
-                app.roleplayHistory = [
-                    { role: 'system', content: `Escenario: ${scenario}` }
-                ];
-
-                document.getElementById('roleplay-selector').style.display = 'none';
-                document.getElementById('roleplay-session').style.display = 'block';
-                document.getElementById('chat-container').innerHTML = '';
-                document.getElementById('roleplay-input').value = '';
-
-                app.showToast(`Iniciando simulación: ${scenario}`, 'info');
-                app.sendRoleplayMessage("INICIAR_SESION");
-            },
+            app.showToast(`Iniciando simulación: ${scenario}`, 'info');
+            app.sendRoleplayMessage("INICIAR_SESION");
+        },
 
             sendRoleplayMessage: async (customMsg = null) => {
                 const input = document.getElementById('roleplay-input');
@@ -1575,128 +1582,128 @@
                 }
             },
 
-            addChatMessage: (text, sender) => {
-                const container = document.getElementById('chat-container');
-                const bubble = document.createElement('div');
-                bubble.className = `chat-bubble bubble-${sender}`;
-                bubble.innerHTML = app.renderMarkdown ? app.renderMarkdown(text) : text;
-                container.appendChild(bubble);
-                container.scrollTop = container.scrollHeight;
-                if (sender === 'ai') app.speak(text);
-            },
+                addChatMessage: (text, sender) => {
+                    const container = document.getElementById('chat-container');
+                    const bubble = document.createElement('div');
+                    bubble.className = `chat-bubble bubble-${sender}`;
+                    bubble.innerHTML = app.renderMarkdown ? app.renderMarkdown(text) : text;
+                    container.appendChild(bubble);
+                    container.scrollTop = container.scrollHeight;
+                    if (sender === 'ai') app.speak(text);
+                },
 
-            currentVoiceGender: 'neutral',
+                    currentVoiceGender: 'neutral',
 
-            speak: (text) => {
-                if (!window.speechSynthesis) return;
-                window.speechSynthesis.cancel();
+                        speak: (text) => {
+                            if (!window.speechSynthesis) return;
+                            window.speechSynthesis.cancel();
 
-                const utterance = new SpeechSynthesisUtterance(text);
-                const langCode = app.currentLanguage === 'es' ? 'es-ES' : 'en-US';
-                utterance.lang = langCode;
+                            const utterance = new SpeechSynthesisUtterance(text);
+                            const langCode = app.currentLanguage === 'es' ? 'es-ES' : 'en-US';
+                            utterance.lang = langCode;
 
-                let targetGender = app.currentVoiceGender;
-                if (targetGender === 'neutral') targetGender = app.detectGender(text);
+                            let targetGender = app.currentVoiceGender;
+                            if (targetGender === 'neutral') targetGender = app.detectGender(text);
 
-                const voice = app.getVoice(targetGender, langCode);
-                if (voice) utterance.voice = voice;
+                            const voice = app.getVoice(targetGender, langCode);
+                            if (voice) utterance.voice = voice;
 
-                window.speechSynthesis.speak(utterance);
-            },
+                            window.speechSynthesis.speak(utterance);
+                        },
 
-            detectGender: (text) => {
-                const lower = text.toLowerCase();
-                if (lower.includes('marcos') || lower.includes('juan') || lower.includes('doctor')) return 'male';
-                if (lower.includes('sarah') || lower.includes('maría') || lower.includes('doctora')) return 'female';
-                return 'neutral';
-            },
+                            detectGender: (text) => {
+                                const lower = text.toLowerCase();
+                                if (lower.includes('marcos') || lower.includes('juan') || lower.includes('doctor')) return 'male';
+                                if (lower.includes('sarah') || lower.includes('maría') || lower.includes('doctora')) return 'female';
+                                return 'neutral';
+                            },
 
-            initVoices: () => {
-                let voices = window.speechSynthesis.getVoices();
-                if (voices.length === 0) {
-                    window.speechSynthesis.onvoiceschanged = () => {
-                        voices = window.speechSynthesis.getVoices();
-                        console.log('Voices loaded');
-                    };
-                }
-            },
+                                initVoices: () => {
+                                    let voices = window.speechSynthesis.getVoices();
+                                    if (voices.length === 0) {
+                                        window.speechSynthesis.onvoiceschanged = () => {
+                                            voices = window.speechSynthesis.getVoices();
+                                            console.log('Voices loaded');
+                                        };
+                                    }
+                                },
 
-            getVoice: (gender, lang) => {
-                const voices = window.speechSynthesis.getVoices();
-                const available = voices.filter(v => v.lang.startsWith(lang.split('-')[0]));
-                if (!available.length) return null;
+                                    getVoice: (gender, lang) => {
+                                        const voices = window.speechSynthesis.getVoices();
+                                        const available = voices.filter(v => v.lang.startsWith(lang.split('-')[0]));
+                                        if (!available.length) return null;
 
-                // Simple logic for brevity in debug
-                return available[0];
-            },
+                                        // Simple logic for brevity in debug
+                                        return available[0];
+                                    },
 
-            endRoleplay: async () => {
-                app.showScreen('loading');
-                try {
-                    const transcript = app.roleplayHistory
-                        .filter(m => m.role !== 'system')
-                        .map(m => `${m.role === 'user' ? 'Tú' : 'IA'}: ${m.content}`)
-                        .join('\n');
+                                        endRoleplay: async () => {
+                                            app.showScreen('loading');
+                                            try {
+                                                const transcript = app.roleplayHistory
+                                                    .filter(m => m.role !== 'system')
+                                                    .map(m => `${m.role === 'user' ? 'Tú' : 'IA'}: ${m.content}`)
+                                                    .join('\n');
 
-                    const response = await fetch(`${app.apiUrl}/analyze`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            text: transcript,
-                            module: 'roleplay_feedback'
-                        })
-                    });
+                                                const response = await fetch(`${app.apiUrl}/analyze`, {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        text: transcript,
+                                                        module: 'roleplay_feedback'
+                                                    })
+                                                });
 
-                    const data = await response.json();
-                    app.displayResult(data.result, 'roleplay');
-                    document.getElementById('roleplay-selector').style.display = 'block';
-                    document.getElementById('roleplay-session').style.display = 'none';
+                                                const data = await response.json();
+                                                app.displayResult(data.result, 'roleplay');
+                                                document.getElementById('roleplay-selector').style.display = 'block';
+                                                document.getElementById('roleplay-session').style.display = 'none';
 
-                } catch (e) {
-                    app.showScreen('dashboard');
-                    app.showToast('Error al generar feedback.', 'error');
-                }
-            },
+                                            } catch (e) {
+                                                app.showScreen('dashboard');
+                                                app.showToast('Error al generar feedback.', 'error');
+                                            }
+                                        },
 
-            setSocialBattery: (value) => {
-                const input = document.getElementById('social-battery-value');
-                if (input) input.value = value;
-                const options = document.querySelectorAll('.battery-option');
-                options.forEach(opt => {
-                    opt.classList.toggle('active', parseInt(opt.getAttribute('data-value')) === value);
-                });
-                app.showToast(`Energía: ${value}%`, 'info');
-            },
+                                            setSocialBattery: (value) => {
+                                                const input = document.getElementById('social-battery-value');
+                                                if (input) input.value = value;
+                                                const options = document.querySelectorAll('.battery-option');
+                                                options.forEach(opt => {
+                                                    opt.classList.toggle('active', parseInt(opt.getAttribute('data-value')) === value);
+                                                });
+                                                app.showToast(`Energía: ${value}%`, 'info');
+                                            },
 
-            completeOnboarding: () => {
-                localStorage.setItem('enclaro_onboarding_complete', 'true');
-                app.showScreen('dashboard');
-                app.showToast('¡Bienvenido!', 'success');
-            },
+                                                completeOnboarding: () => {
+                                                    localStorage.setItem('enclaro_onboarding_complete', 'true');
+                                                    app.showScreen('dashboard');
+                                                    app.showToast('¡Bienvenido!', 'success');
+                                                },
 
-            // ... (Skipping some minor helpers for brevity, critical logic preserved) ...
+                                                    // ... (Skipping some minor helpers for brevity, critical logic preserved) ...
 
-            toggleSettings: () => {
-                const menu = document.getElementById('settings-menu');
-                if (menu) menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
-            },
+                                                    toggleSettings: () => {
+                                                        const menu = document.getElementById('settings-menu');
+                                                        if (menu) menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+                                                    },
 
-            updatePersonalizedText: (profile) => {
-                if (!profile) return;
-                const welcomeText = `Hola, ${profile.name}`;
+                                                        updatePersonalizedText: (profile) => {
+                                                            if (!profile) return;
+                                                            const welcomeText = `Hola, ${profile.name}`;
 
-                const settingsWelcome = document.getElementById('settings-welcome-text');
-                if (settingsWelcome) settingsWelcome.textContent = welcomeText;
+                                                            const settingsWelcome = document.getElementById('settings-welcome-text');
+                                                            if (settingsWelcome) settingsWelcome.textContent = welcomeText;
 
-                const dashboardHeader = document.querySelector('#screen-dashboard header');
-                if (dashboardHeader) {
-                    // header updates
-                }
-            },
+                                                            const dashboardHeader = document.querySelector('#screen-dashboard header');
+                                                            if (dashboardHeader) {
+                                                                // header updates
+                                                            }
+                                                        },
 
-            checkAuth: async () => {
-                // ... (Auth check simplified)
-            }
+                                                            checkAuth: async () => {
+                                                                // ... (Auth check simplified)
+                                                            }
         };
 
         document.addEventListener('DOMContentLoaded', () => {
