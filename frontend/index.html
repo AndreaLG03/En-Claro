@@ -1726,121 +1726,126 @@
                         console.error("Failed to save wellbeing log", e);
                     }
                 }
-            },
-
-            loadWellbeing: async () => {
-                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                if (!profile.email) {
-                    document.getElementById('wellbeing-insights').innerHTML = '<p>Inicia sesión para ver tus datos.</p>';
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`${app.apiUrl}/wellbeing?email=${encodeURIComponent(profile.email)}`);
-                    if (!response.ok) return;
-                    const data = await response.json();
-
-                    // Prepare data for Chart.js
-                    const labels = data.map(d => new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }));
-                    const values = data.map(d => d.battery_level);
-
-                    const ctx = document.getElementById('wellbeingChart');
-                    if (!ctx) return;
-
-                    // Destroy existing chart if any
-                    if (window.wellbeingChartInstance) {
-                        window.wellbeingChartInstance.destroy();
+                resetOnboarding: () => {
+                    if (confirm('¿Quieres volver a ver la introducción?')) {
+                        localStorage.removeItem('enclaro_onboarding_complete');
+                        window.location.reload();
                     }
+                },
 
-                    window.wellbeingChartInstance = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Nivel de Energía',
-                                data: values,
-                                borderColor: '#3b82f6',
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                tension: 0.4,
-                                fill: true,
-                                pointBackgroundColor: values.map(v => v < 40 ? '#ef4444' : (v > 70 ? '#10b981' : '#f59e0b'))
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: { beginAtZero: true, max: 100 }
-                            }
+                    loadWellbeing: async () => {
+                        const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                        if (!profile.email) {
+                            document.getElementById('wellbeing-insights').innerHTML = '<p>Inicia sesión para ver tus datos.</p>';
+                            return;
                         }
-                    });
 
-                    // Simple Insights Logic
-                    const avg = values.reduce((a, b) => a + b, 0) / values.length || 0;
-                    const insightBox = document.getElementById('wellbeing-insights');
-                    const insightText = document.getElementById('insight-text');
+                        try {
+                            const response = await fetch(`${app.apiUrl}/wellbeing?email=${encodeURIComponent(profile.email)}`);
+                            if (!response.ok) return;
+                            const data = await response.json();
 
-                    insightBox.style.display = 'block';
-                    if (avg < 50) {
-                        insightText.textContent = "Tu energía promedio es baja últimamente. Intenta priorizar el descanso esta semana.";
-                    } else if (values.length > 2 && values[values.length - 1] < values[values.length - 2]) {
-                        insightText.textContent = "Tu energía ha bajado respecto a ayer. Quizás hoy sea un buen día para actividades tranquilas.";
-                    } else {
-                        insightText.textContent = "¡Mantienes un buen nivel de energía! Es un buen momento para afrontar tareas sociales.";
-                    }
+                            // Prepare data for Chart.js
+                            const labels = data.map(d => new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }));
+                            const values = data.map(d => d.battery_level);
 
-                } catch (e) {
-                    console.error("Error loading wellbeing data", e);
+                            const ctx = document.getElementById('wellbeingChart');
+                            if (!ctx) return;
+
+                            // Destroy existing chart if any
+                            if (window.wellbeingChartInstance) {
+                                window.wellbeingChartInstance.destroy();
+                            }
+
+                            window.wellbeingChartInstance = new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: labels,
+                                    datasets: [{
+                                        label: 'Nivel de Energía',
+                                        data: values,
+                                        borderColor: '#3b82f6',
+                                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                        tension: 0.4,
+                                        fill: true,
+                                        pointBackgroundColor: values.map(v => v < 40 ? '#ef4444' : (v > 70 ? '#10b981' : '#f59e0b'))
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        y: { beginAtZero: true, max: 100 }
+                                    }
+                                }
+                            });
+
+                            // Simple Insights Logic
+                            const avg = values.reduce((a, b) => a + b, 0) / values.length || 0;
+                            const insightBox = document.getElementById('wellbeing-insights');
+                            const insightText = document.getElementById('insight-text');
+
+                            insightBox.style.display = 'block';
+                            if (avg < 50) {
+                                insightText.textContent = "Tu energía promedio es baja últimamente. Intenta priorizar el descanso esta semana.";
+                            } else if (values.length > 2 && values[values.length - 1] < values[values.length - 2]) {
+                                insightText.textContent = "Tu energía ha bajado respecto a ayer. Quizás hoy sea un buen día para actividades tranquilas.";
+                            } else {
+                                insightText.textContent = "¡Mantienes un buen nivel de energía! Es un buen momento para afrontar tareas sociales.";
+                            }
+
+                        } catch (e) {
+                            console.error("Error loading wellbeing data", e);
+                        }
+                    },
+
+                        completeOnboarding: () => {
+                            localStorage.setItem('enclaro_onboarding_complete', 'true');
+                            app.showScreen('dashboard');
+                            app.showToast('¡Bienvenido!', 'success');
+                        },
+
+                            // ... (Skipping some minor helpers for brevity, critical logic preserved) ...
+
+                            toggleSettings: () => {
+                                const menu = document.getElementById('settings-menu');
+                                if (menu) menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+                            },
+
+                                updatePersonalizedText: (profile) => {
+                                    if (!profile) return;
+                                    const welcomeText = `Hola, ${profile.name}`;
+
+                                    const settingsWelcome = document.getElementById('settings-welcome-text');
+                                    if (settingsWelcome) settingsWelcome.textContent = welcomeText;
+
+                                    const dashboardHeader = document.querySelector('#screen-dashboard header');
+                                    if (dashboardHeader) {
+                                        // header updates
+                                    }
+                                },
+
+                                    checkAuth: async () => {
+                                        // ... (Auth check simplified)
+                                    }
+            };
+
+            document.addEventListener('DOMContentLoaded', () => {
+                app.initErrorHandler();
+
+                // Quick Init Logic
+                if (localStorage.getItem('enclaro_onboarding_complete')) {
+                    app.showScreen('dashboard');
+                } else {
+                    app.showScreen('onboarding');
                 }
-            },
 
-            completeOnboarding: () => {
-                localStorage.setItem('enclaro_onboarding_complete', 'true');
-                app.showScreen('dashboard');
-                app.showToast('¡Bienvenido!', 'success');
-            },
+                if (window.lucide) lucide.createIcons();
+                console.log('App Initialized Cleanly');
+            });
 
-            // ... (Skipping some minor helpers for brevity, critical logic preserved) ...
-
-            toggleSettings: () => {
-                const menu = document.getElementById('settings-menu');
-                if (menu) menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
-            },
-
-            updatePersonalizedText: (profile) => {
-                if (!profile) return;
-                const welcomeText = `Hola, ${profile.name}`;
-
-                const settingsWelcome = document.getElementById('settings-welcome-text');
-                if (settingsWelcome) settingsWelcome.textContent = welcomeText;
-
-                const dashboardHeader = document.querySelector('#screen-dashboard header');
-                if (dashboardHeader) {
-                    // header updates
-                }
-            },
-
-            checkAuth: async () => {
-                // ... (Auth check simplified)
-            }
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            app.initErrorHandler();
-
-            // Quick Init Logic
-            if (localStorage.getItem('enclaro_onboarding_complete')) {
-                app.showScreen('dashboard');
-            } else {
-                app.showScreen('onboarding');
-            }
-
-            if (window.lucide) lucide.createIcons();
-            console.log('App Initialized Cleanly');
-        });
-
-        // Global Export
-        window.app = app;
+            // Global Export
+            window.app = app;
 
     </script>
 </body>
