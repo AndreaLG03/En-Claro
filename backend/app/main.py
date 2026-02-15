@@ -215,6 +215,7 @@ async def catch_all(full_path: str):
     if ".." in full_path:
         return JSONResponse(status_code=403, content={"detail": "Access denied"})
 
+    file_path = FRONTEND_DIR / full_path
     if file_path and file_path.is_file():
         return FileResponse(file_path)
         
