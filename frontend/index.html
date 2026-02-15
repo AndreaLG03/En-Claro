@@ -404,6 +404,11 @@
                     <i data-lucide="user-check"></i>
                     <span id="i18n-nav-roleplay">Simulador social</span>
                 </button>
+                <button class="btn btn-primary btn-large menu-item" style="background: var(--grad-routine); --i: 6.5;"
+                    onclick="app.showScreen('wellbeing')" aria-label="Ver analíticas de bienestar">
+                    <i data-lucide="activity"></i>
+                    <span id="i18n-nav-wellbeing">Mi Bienestar</span>
+                </button>
                 <!-- History (Refactored to Safe Index Mode) -->
                 <button class="btn btn-secondary btn-large menu-item"
                     style="--i: 7; margin-top: 10px; display: flex !important;" onclick="app.showScreen('history')"
@@ -586,6 +591,31 @@
                     <i data-lucide="clipboard-list"></i> Crear rutina
                 </button>
                 <button class="btn btn-secondary" onclick="app.showScreen('dashboard')">
+                    <i data-lucide="home"></i> Volver al inicio
+                </button>
+            </div>
+        </div>
+
+        <!-- Chart.js for Wellbeing Analytics -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+        <!-- Wellbeing Screen (New) -->
+        <div id="screen-wellbeing" class="screen">
+            <header>
+                <h1>Mi Bienestar</h1>
+                <p>Analiza tus patrones de energía y descanso.</p>
+            </header>
+
+            <div class="card">
+                <h3>Tu Batería Social (Últimos 30 días)</h3>
+                <div style="height: 300px; width: 100%;">
+                    <canvas id="wellbeingChart"></canvas>
+                </div>
+                <div id="wellbeing-insights"
+                    style="margin-top: 20px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 12px; display: none;">
+                    <strong>💡 Insight:</strong> <span id="insight-text">Recopilando datos...</span>
+                </div>
+                <button class="btn btn-secondary" onclick="app.showScreen('dashboard')" style="margin-top: 20px;">
                     <i data-lucide="home"></i> Volver al inicio
                 </button>
             </div>
@@ -919,6 +949,10 @@
 
                     if (screenId === 'history') {
                         app.loadHistory();
+                    }
+
+                    if (screenId === 'wellbeing') {
+                        app.loadWellbeing();
                     }
 
                     if (window.lucide) {
@@ -1664,14 +1698,99 @@
                 }
             },
 
-            setSocialBattery: (value) => {
+            setSocialBattery: async (value) => {
                 const input = document.getElementById('social-battery-value');
                 if (input) input.value = value;
                 const options = document.querySelectorAll('.battery-option');
                 options.forEach(opt => {
                     opt.classList.toggle('active', parseInt(opt.getAttribute('data-value')) === value);
                 });
-                app.showToast(`Energía: ${value}%`, 'info');
+
+                // Optimistic UI update
+                app.showToast(`Energía: ${value}% saved.`, 'info');
+
+                // Save to backend
+                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                if (profile.email) {
+                    try {
+                        await fetch(`${app.apiUrl}/wellbeing`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                user_email: profile.email,
+                                battery_level: value
+                            })
+                        });
+                    } catch (e) {
+                        console.error("Failed to save wellbeing log", e);
+                    }
+                }
+            },
+
+            loadWellbeing: async () => {
+                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                if (!profile.email) {
+                    document.getElementById('wellbeing-insights').innerHTML = '<p>Inicia sesión para ver tus datos.</p>';
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${app.apiUrl}/wellbeing?email=${encodeURIComponent(profile.email)}`);
+                    if (!response.ok) return;
+                    const data = await response.json();
+
+                    // Prepare data for Chart.js
+                    const labels = data.map(d => new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }));
+                    const values = data.map(d => d.battery_level);
+
+                    const ctx = document.getElementById('wellbeingChart');
+                    if (!ctx) return;
+
+                    // Destroy existing chart if any
+                    if (window.wellbeingChartInstance) {
+                        window.wellbeingChartInstance.destroy();
+                    }
+
+                    window.wellbeingChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Nivel de Energía',
+                                data: values,
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                pointBackgroundColor: values.map(v => v < 40 ? '#ef4444' : (v > 70 ? '#10b981' : '#f59e0b'))
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { beginAtZero: true, max: 100 }
+                            }
+                        }
+                    });
+
+                    // Simple Insights Logic
+                    const avg = values.reduce((a, b) => a + b, 0) / values.length || 0;
+                    const insightBox = document.getElementById('wellbeing-insights');
+                    const insightText = document.getElementById('insight-text');
+
+                    insightBox.style.display = 'block';
+                    if (avg < 50) {
+                        insightText.textContent = "Tu energía promedio es baja últimamente. Intenta priorizar el descanso esta semana.";
+                    } else if (values.length > 2 && values[values.length - 1] < values[values.length - 2]) {
+                        insightText.textContent = "Tu energía ha bajado respecto a ayer. Quizás hoy sea un buen día para actividades tranquilas.";
+                    } else {
+                        insightText.textContent = "¡Mantienes un buen nivel de energía! Es un buen momento para afrontar tareas sociales.";
+                    }
+
+                } catch (e) {
+                    console.error("Error loading wellbeing data", e);
+                }
             },
 
             completeOnboarding: () => {

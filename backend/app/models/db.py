@@ -48,6 +48,21 @@ class AnalysisHistory(Base):
     # Relationship
     user = relationship("User", back_populates="history")
 
+class WellbeingLog(Base):
+    __tablename__ = "wellbeing_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_email = Column(String, ForeignKey("users.email"))
+    battery_level = Column(Integer) # 0-100
+    date = Column(DateTime, default=datetime.utcnow) # We will normalize to date in logic
+    notes = Column(Text, nullable=True)
+
+    # Relationship
+    user = relationship("User", back_populates="wellbeing_logs")
+
+# Update User relationship
+User.wellbeing_logs = relationship("WellbeingLog", back_populates="user")
+
 # --- Dependency ---
 def get_db():
     db = SessionLocal()

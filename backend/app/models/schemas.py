@@ -9,3 +9,8 @@ class TextRequest(BaseModel):
 
 class AIResponse(BaseModel):
     result: str
+
+class WellbeingRequest(BaseModel):
+    user_email: str
+    battery_level: int
+    notes: str | None = None

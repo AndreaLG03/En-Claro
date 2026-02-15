@@ -119,7 +119,6 @@ def get_history(email: str, db: Session = Depends(get_db)):
     if not email:
         return []
         
-    history = db.query(AnalysisHistory).filter(AnalysisHistory.user_email == email).order_by(AnalysisHistory.timestamp.desc()).limit(50).all()
     return [{
         "id": h.id,
         "module": h.module,
@@ -128,3 +127,51 @@ def get_history(email: str, db: Session = Depends(get_db)):
         "timestamp": h.timestamp.isoformat(),
         "meta_data": h.meta_data
     } for h in history]
+
+# --- WELLBEING ENDPOINTS ---
+
+from ..models.db import WellbeingLog
+from ..models.schemas import WellbeingRequest
+from datetime import datetime, date
+
+@router.post("/wellbeing")
+def save_wellbeing(request: WellbeingRequest, db: Session = Depends(get_db)):
+    """Save or update daily wellbeing log."""
+    # Check if entry exists for today
+    today = datetime.utcnow().date()
+    # Simple check: filter by email and date range
+    existing_log = db.query(WellbeingLog).filter(
+        WellbeingLog.user_email == request.user_email,
+        WellbeingLog.date >= datetime.combine(today, datetime.min.time()),
+        WellbeingLog.date <= datetime.combine(today, datetime.max.time())
+    ).first()
+
+    if existing_log:
+        existing_log.battery_level = request.battery_level
+        if request.notes:
+            existing_log.notes = request.notes
+        db.commit()
+        return {"status": "updated", "level": request.battery_level}
+    else:
+        new_log = WellbeingLog(
+            user_email=request.user_email,
+            battery_level=request.battery_level,
+            notes=request.notes,
+            date=datetime.utcnow()
+        )
+        db.add(new_log)
+        db.commit()
+        return {"status": "created", "level": request.battery_level}
+
+@router.get("/wellbeing")
+def get_wellbeing(email: str, db: Session = Depends(get_db)):
+    """Get last 30 days of wellbeing logs."""
+    logs = db.query(WellbeingLog).filter(
+        WellbeingLog.user_email == email
+    ).order_by(WellbeingLog.date.asc()).limit(30).all()
+    
+    return [{
+        "date": log.date.isoformat(),
+        "battery_level": log.battery_level,
+        "notes": log.notes
+    } for log in logs]
