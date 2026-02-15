@@ -198,14 +198,7 @@ async def debug_system():
         "files_in_cwd": files_in_cwd,
         "walk_up": walk_up,
         "path_status": path_status,
-        "env_render": os.environ.get("RENDER"),
-        "frontend_dir_variable": str(FRONTEND_DIR),
-        "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False,
-        "frontend_contents": [p.name for p in FRONTEND_DIR.iterdir()] if FRONTEND_DIR and FRONTEND_DIR.exists() else [],
-        "js_dir_contents": [p.name for p in (FRONTEND_DIR / "js").iterdir()] if (FRONTEND_DIR / "js").exists() else [],
-        "startup_errors": STARTUP_ERRORS,
-        "app_version": "1.2.3 (restore-app-v8)"
-    }
+    return JSONResponse(content={"status": "ok", "app_version": "1.2.4 (inline-js)", "env": os.getenv("RENDER", "local")})
 
 # Catch-all for other static files or client-side routing
 # MUST BE LAST
