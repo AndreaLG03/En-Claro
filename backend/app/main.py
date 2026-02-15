@@ -185,7 +185,7 @@ async def debug_system():
     path_status = {}
     
     # Enhanced specific path checks
-    critical_files = ["index.html", "js/app_v5.js", "js/lucide.min.js"]
+    critical_files = ["index.html", "js/app_v6.js", "js/lucide.min.js"]
     for fname in critical_files:
         fpath = FRONTEND_DIR / fname
         key = f"file_{fname.replace('/', '_')}"
@@ -204,7 +204,7 @@ async def debug_system():
         "frontend_contents": [p.name for p in FRONTEND_DIR.iterdir()] if FRONTEND_DIR and FRONTEND_DIR.exists() else [],
         "js_dir_contents": [p.name for p in (FRONTEND_DIR / "js").iterdir()] if (FRONTEND_DIR / "js").exists() else [],
         "startup_errors": STARTUP_ERRORS,
-        "app_version": "1.2.0 (stable-module-fixed)"
+        "app_version": "1.2.1 (app-v6-rename)"
     }
 
 # Catch-all for other static files or client-side routing
