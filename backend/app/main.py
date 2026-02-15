@@ -182,6 +182,8 @@ async def debug_system():
         walk_up.append({str(current): items})
         current = current.parent
         
+    path_status = {}
+    
     # Enhanced specific path checks
     critical_files = ["index.html", "js/app_v5.js", "js/lucide.min.js"]
     for fname in critical_files:
