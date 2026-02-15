@@ -1083,7 +1083,7 @@
 
             saveToHistory: (module, input, result) => {
                 try {
-                    const history = JSON.parse(localStorage.getItem('enclaro_history') || '[]');
+                    const localHistory = JSON.parse(localStorage.getItem('enclaro_history') || '[]');
                     const newItem = {
                         id: Date.now(),
                         module,
@@ -1091,8 +1091,8 @@
                         result,
                         date: new Date().toLocaleString()
                     };
-                    history.unshift(newItem);
-                    localStorage.setItem('enclaro_history', JSON.stringify(history.slice(0, 20)));
+                    localHistory.unshift(newItem);
+                    localStorage.setItem('enclaro_history', JSON.stringify(localHistory.slice(0, 20)));
                 } catch (e) {
                     console.error('Failed to save history:', e);
                 }
@@ -1118,14 +1118,14 @@
                     const response = await fetch(`${app.apiUrl}/history?email=${encodeURIComponent(profile.email)}`);
                     if (!response.ok) throw new Error('Error al cargar historial');
 
-                    const history = await response.json();
+                    const remoteHistory = await response.json();
 
-                    if (history.length === 0) {
+                    if (remoteHistory.length === 0) {
                         historyList.innerHTML = '<div class="card" style="text-align:center;"><p>No tienes análisis guardados.</p></div>';
                         return;
                     }
 
-                    historyList.innerHTML = history.map(item => {
+                    historyList.innerHTML = remoteHistory.map(item => {
                         const dateStr = new Date(item.timestamp).toLocaleDateString();
                         const safeResult = item.result_text.replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "");
 
