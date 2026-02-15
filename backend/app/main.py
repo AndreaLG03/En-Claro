@@ -182,52 +182,14 @@ async def debug_system():
         walk_up.append({str(current): items})
         current = current.parent
         
-    # Check specific paths
-    check_paths = [
-        "/opt/render/project/src",
-        "/opt/render/project/src/frontend",
-        "/opt/render/project/src/backend",
-        str(Path(__file__).resolve().parent), # app dir
-        str(Path(__file__).resolve().parent.parent), # backend dir
-        str(Path(__file__).resolve().parent.parent.parent), # root dir
-    ]
-    
-    path_status = {}
-    for p in check_paths:
-        path_obj = Path(p)
-        status = "missing"
-        if path_obj.exists():
-            status = "exists"
-            if path_obj.is_dir():
-                try:
-                    status += f" (contents: {os.listdir(p)})"
-                except:
-                    status += " (dir, list failed)"
-        path_status[p] = status
-
-    return {
-        "cwd": cwd,
-        "files_in_cwd": files_in_cwd,
-        "walk_up": walk_up,
-        "path_status": path_status,
-        "env_render": os.environ.get("RENDER"),
-        "frontend_dir_variable": str(FRONTEND_DIR),
-        "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False
-    }
-
-    # Enhanced DB Diagnostics
-    try:
-        db_path = Path("enclaro.db")
-        path_status["db_file"] = f"Exists: {db_path.exists()}, Size: {db_path.stat().st_size if db_path.exists() else 'N/A'}"
-        path_status["cwd_writable"] = os.access(os.getcwd(), os.W_OK)
-        
-        # Try to connect and list tables
-        from sqlalchemy import inspect
-        from .models.db import engine
-        insp = inspect(engine)
-        path_status["db_tables"] = insp.get_table_names()
-    except Exception as e:
-        path_status["db_error"] = str(e)
+    # Enhanced specific path checks
+    critical_files = ["index.html", "js/app_v5.js", "js/lucide.min.js"]
+    for fname in critical_files:
+        fpath = FRONTEND_DIR / fname
+        key = f"file_{fname.replace('/', '_')}"
+        path_status[key] = f"Exists: {fpath.exists()}"
+        if fpath.exists():
+            path_status[key] += f", Size: {fpath.stat().st_size}b"
 
     return {
         "cwd": cwd,
@@ -237,23 +199,34 @@ async def debug_system():
         "env_render": os.environ.get("RENDER"),
         "frontend_dir_variable": str(FRONTEND_DIR),
         "frontend_dir_exists": FRONTEND_DIR.exists() if FRONTEND_DIR else False,
+        "frontend_contents": [p.name for p in FRONTEND_DIR.iterdir()] if FRONTEND_DIR and FRONTEND_DIR.exists() else [],
+        "js_dir_contents": [p.name for p in (FRONTEND_DIR / "js").iterdir()] if (FRONTEND_DIR / "js").exists() else [],
         "startup_errors": STARTUP_ERRORS,
-        "app_version": "1.1.10 (history-restored)"
+        "app_version": "1.1.11 (debug-enhanced-js-404)"
     }
 
 # Catch-all for other static files or client-side routing
 # MUST BE LAST
 @app.get("/{full_path:path}")
 async def catch_all(full_path: str):
+    # Security: prevent directory traversal
+    if ".." in full_path:
+        return JSONResponse(status_code=403, content={"detail": "Access denied"})
+
     file_path = FRONTEND_DIR / full_path
     if file_path and file_path.is_file():
         return FileResponse(file_path)
         
-    # If accessing a specific static file (js, css, png, map) and it's missing, return 404
-    # This prevents "HTML as JS" syntax errors
+    # If accessing a specific static file (js, css, png, map) and it's missing
     if "." in full_path:
         ext = full_path.split(".")[-1].lower()
-        if ext in ["js", "css", "png", "jpg", "jpeg", "gif", "ico", "map", "json"]:
+        
+        # Return valid JS for missing JS files to prevent SyntaxErrors
+        if ext == "js":
+            content = f"console.error('SERVER 404: JavaScript file not found: {full_path}');"
+            return Response(content=content, media_type="application/javascript", status_code=404)
+            
+        if ext in ["css", "png", "jpg", "jpeg", "gif", "ico", "map", "json"]:
             return JSONResponse(status_code=404, content={"detail": "File not found"})
 
     # Fallback to index.html for SPA routing
