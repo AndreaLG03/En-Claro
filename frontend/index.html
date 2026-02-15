@@ -11,6 +11,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
+    <script>
+        // CRITICAL DEBUG TRAP
+        // This catches the exact resource causing the syntax error
+        window.addEventListener('error', function (e) {
+            if (e.message.includes('SyntaxError') || e.message.includes('token')) {
+                console.error("CRITICAL SYNTAX ERROR DETECTED:", e);
+                // Try to find the element that caused it
+                const targetSrc = e.target.src || e.target.href;
+                if (targetSrc) {
+                    alert("ERROR DE CARGA EN: " + targetSrc + "\nEl servidor devolvió HTML en lugar de código.");
+                } else {
+                    console.warn("Syntax error source unknown, checking network tab is recommended.");
+                }
+            }
+        }, true);
+    </script>
     <!-- Lucide Icons (Locally Bundled) -->
     <script src="/js/lucide.min.js"></script>
 </head>

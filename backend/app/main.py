@@ -215,23 +215,15 @@ async def catch_all(full_path: str):
     if ".." in full_path:
         return JSONResponse(status_code=403, content={"detail": "Access denied"})
 
-    file_path = FRONTEND_DIR / full_path
     if file_path and file_path.is_file():
         return FileResponse(file_path)
         
-    # If accessing a specific static file (js, css, png, map) and it's missing
-    if "." in full_path:
-        ext = full_path.split(".")[-1].lower()
-        
-        # Return valid JS for missing JS files to prevent SyntaxErrors
-        if ext == "js":
-            content = f"console.error('SERVER 404: JavaScript file not found: {full_path}');"
-            return Response(content=content, media_type="application/javascript", status_code=404)
-            
-        if ext in ["css", "png", "jpg", "jpeg", "gif", "ico", "map", "json"]:
-            return JSONResponse(status_code=404, content={"detail": "File not found"})
+    # STRICTER 404 HANDLING
+    # If it looks like a file extension, REJECT IT. Do not serve index.html.
+    if "." in full_path and not full_path.endswith(".html"):
+         return JSONResponse(status_code=404, content={"detail": f"File not found: {full_path}"})
 
-    # Fallback to index.html for SPA routing
+    # Fallback to index.html ONLY for clean URLs (SPA routing)
     if FRONTEND_DIR:
         return FileResponse(FRONTEND_DIR / "index.html")
     return JSONResponse(status_code=404, content={"detail": "Frontend not found"})
