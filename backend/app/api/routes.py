@@ -123,6 +123,7 @@ def get_history(email: str, db: Session = Depends(get_db)):
     return [{
         "id": h.id,
         "module": h.module,
+        "input_text": h.input_text,
         "result_text": h.result_text,
         "timestamp": h.timestamp.isoformat(),
         "meta_data": h.meta_data
