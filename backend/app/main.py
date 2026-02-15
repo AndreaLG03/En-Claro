@@ -24,14 +24,7 @@ logger = logging.getLogger(__name__)
 STARTUP_ERRORS = []
 
 # Middleware to force UTF-8 on all static files
-@app.middleware("http")
-async def force_utf8_middleware(request: Request, call_next):
-    response = await call_next(request)
-    content_type = response.headers.get("content-type", "")
-    if "text/html" in content_type or "application/javascript" in content_type or "text/css" in content_type:
-        if "charset" not in content_type:
-            response.headers["content-type"] = f"{content_type}; charset=utf-8"
-    return response
+# Middleware definition moved below app initialization
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -103,6 +96,16 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Middleware to force UTF-8 on all static files
+@app.middleware("http")
+async def force_utf8_middleware(request: Request, call_next):
+    response = await call_next(request)
+    content_type = response.headers.get("content-type", "")
+    if "text/html" in content_type or "application/javascript" in content_type or "text/css" in content_type:
+        if "charset" not in content_type:
+            response.headers["content-type"] = f"{content_type}; charset=utf-8"
+    return response
 
 # Trust Proxy Headers (for Render SSL termination)
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
