@@ -366,7 +366,7 @@
                 <p id="i18n-subtitle" style="font-style: italic; font-size: 0.9rem; margin-top: -5px; opacity: 0.8;">
                     Inspirada en la
                     experiencia neurodivergente</p>
-                <p>¿Qué quieres hacer ahora?</p>
+                <p id="intro-question">¿Qué quieres hacer ahora?</p>
                 <div id="backend-status"
                     style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; font-size: 0.8rem; color: var(--secondary-color);">
                     <span id="status-dot" style="width: 8px; height: 8px; background: #ccc; border-radius: 50%;"></span>
@@ -1622,8 +1622,17 @@
                     app.currentVoiceGender = 'neutral';
                 }
 
+                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                const userName = profile.name || 'Usuario';
+                const gender = profile.gender || 'neutral';
+                let instructions = `Escenario: ${scenario}. \n`;
+                instructions += `El usuario se llama ${userName}. `;
+                if (gender === 'femenino') instructions += "Trátala de ella (femenino). ";
+                else if (gender === 'masculino') instructions += "Trátalo de él (masculino). ";
+                else if (gender === 'nobinario' || gender === 'otro') instructions += "Trátale con lenguaje neutro (elle/le). ";
+
                 app.roleplayHistory = [
-                    { role: 'system', content: `Escenario: ${scenario}` }
+                    { role: 'system', content: instructions }
                 ];
 
                 document.getElementById('roleplay-selector').style.display = 'none';
@@ -1938,6 +1947,11 @@
                 const settingsWelcome = document.getElementById('settings-welcome-text');
                 if (settingsWelcome) {
                     settingsWelcome.innerHTML = `${welcomeWord} a En Claro<br><span style="font-size:0.8em; opacity:0.8">${profile.name}</span>`;
+                }
+
+                const introQuestion = document.getElementById('intro-question');
+                if (introQuestion) {
+                    introQuestion.textContent = `¿Qué quieres hacer ahora, ${profile.name}?`;
                 }
             },
 
