@@ -1942,40 +1942,83 @@
                     if (display) display.textContent = profile.avatar;
                     app.tempProfileAvatar = profile.avatar;
                 }
-            },
-
-            connectGoogle: () => {
-                app.showToast('La conexión con Google estará disponible próximamente.', 'info');
-            },
-
-            updatePersonalizedText: (profile) => {
-                if (!profile) profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                if (!profile.name) return;
-
-                let welcomeWord = 'Bienvenido';
-                if (profile.gender === 'femenino') welcomeWord = 'Bienvenida';
-                else if (profile.gender === 'nobinario' || profile.gender === 'otro') welcomeWord = 'Bienvenide';
-
-                const settingsWelcome = document.getElementById('settings-welcome-text');
-                if (settingsWelcome) {
-                    settingsWelcome.innerHTML = `${welcomeWord} a En Claro<br><span style="font-size:0.8em; opacity:0.8">${profile.name}</span>`;
-                }
-
-                // Update Onboarding Title
-                const onboardingTitle = document.getElementById('i18n-onboarding-title');
-                if (onboardingTitle) {
-                    onboardingTitle.textContent = `${welcomeWord} a En Claro`;
-                }
-
-                const introQuestion = document.getElementById('intro-question');
-                if (introQuestion) {
-                    introQuestion.textContent = `¿Qué quieres hacer ahora, ${profile.name}?`;
-                }
-            },
-
-            checkAuth: async () => {
-                // ... (Auth check simplified)
+                if (display) display.textContent = profile.avatar;
+                app.tempProfileAvatar = profile.avatar;
             }
+
+                if(profile.googleLinked) {
+                const btnGoogle = document.querySelector('button[onclick="app.connectGoogle()"]');
+        if (btnGoogle) {
+            btnGoogle.innerHTML = '<i data-lucide="check"></i> <span>Conectado (Mock)</span>';
+            btnGoogle.className = 'btn btn-secondary';
+            btnGoogle.onclick = app.disconnectGoogle;
+        }
+                }
+            },
+
+        connectGoogle: () => {
+            const btn = document.querySelector('button[onclick="app.connectGoogle()"]');
+            if (btn) btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Conectando...';
+
+            setTimeout(() => {
+                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                profile.googleLinked = true;
+                // Mock data
+                if (!profile.email) profile.email = "usuario.mock@gmail.com";
+
+                localStorage.setItem('enclaro_profile', JSON.stringify(profile));
+
+                app.loadProfile();
+                app.showToast('Cuenta vinculada con Google correctamente (Simulación)', 'success');
+
+                if (window.lucide) lucide.createIcons();
+            }, 1500);
+        },
+
+            disconnectGoogle: () => {
+                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                delete profile.googleLinked;
+                localStorage.setItem('enclaro_profile', JSON.stringify(profile));
+
+                const btn = document.querySelector('button[onclick*="app.disconnectGoogle"]');
+                if (btn) {
+                    btn.innerHTML = '<i data-lucide="log-in"></i> <span>Conectar con Google</span>';
+                    btn.className = 'btn btn-secondary';
+                    btn.setAttribute('onclick', 'app.connectGoogle()');
+                }
+
+                app.showToast('Cuenta desvinculada', 'info');
+                if (window.lucide) lucide.createIcons();
+            },
+
+                updatePersonalizedText: (profile) => {
+                    if (!profile) profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                    if (!profile.name) return;
+
+                    let welcomeWord = 'Bienvenido';
+                    if (profile.gender === 'femenino') welcomeWord = 'Bienvenida';
+                    else if (profile.gender === 'nobinario' || profile.gender === 'otro') welcomeWord = 'Bienvenide';
+
+                    const settingsWelcome = document.getElementById('settings-welcome-text');
+                    if (settingsWelcome) {
+                        settingsWelcome.innerHTML = `${welcomeWord} a En Claro<br><span style="font-size:0.8em; opacity:0.8">${profile.name}</span>`;
+                    }
+
+                    // Update Onboarding Title
+                    const onboardingTitle = document.getElementById('i18n-onboarding-title');
+                    if (onboardingTitle) {
+                        onboardingTitle.textContent = `${welcomeWord} a En Claro`;
+                    }
+
+                    const introQuestion = document.getElementById('intro-question');
+                    if (introQuestion) {
+                        introQuestion.textContent = `¿Qué quieres hacer ahora, ${profile.name}?`;
+                    }
+                },
+
+                    checkAuth: async () => {
+                        // ... (Auth check simplified)
+                    }
         };
 
         document.addEventListener('DOMContentLoaded', () => {
