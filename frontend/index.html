@@ -932,6 +932,34 @@
             },
 
             /**
+             * Legal Onboarding Logic
+             */
+            checkLegalConsent: () => {
+                const checkData = document.getElementById('check-data');
+                const checkAi = document.getElementById('check-ai');
+                const btn = document.getElementById('btn-accept-legal');
+
+                if (checkData && checkAi && btn) {
+                    const isValid = checkData.checked && checkAi.checked;
+                    btn.disabled = !isValid;
+                    btn.style.opacity = isValid ? '1' : '0.6';
+                    btn.style.cursor = isValid ? 'pointer' : 'not-allowed';
+                }
+            },
+
+            acceptLegal: () => {
+                app.nextLegalScreen('legal-rights');
+            },
+
+            nextLegalScreen: (screenName) => {
+                app.showScreen(screenName);
+            },
+
+            finishLegalOnboarding: () => {
+                app.showScreen('onboarding');
+            },
+
+            /**
              * Navigation: Hide all screens and show the requested one
              */
             showScreen: (screenId) => {
