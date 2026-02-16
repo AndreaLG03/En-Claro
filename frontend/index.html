@@ -1903,6 +1903,12 @@
             app.initErrorHandler();
 
             // Quick Init Logic
+            // Init Personalization
+            const savedProfile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+            if (savedProfile.name) {
+                app.updatePersonalizedText(savedProfile);
+            }
+
             if (localStorage.getItem('enclaro_onboarding_complete')) {
                 app.showScreen('dashboard');
             } else {
