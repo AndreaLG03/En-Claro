@@ -1944,6 +1944,10 @@
                 }
             },
 
+            connectGoogle: () => {
+                app.showToast('La conexión con Google estará disponible próximamente.', 'info');
+            },
+
             updatePersonalizedText: (profile) => {
                 if (!profile) profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
                 if (!profile.name) return;
