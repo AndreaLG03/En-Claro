@@ -1885,7 +1885,14 @@
             completeOnboarding: () => {
                 localStorage.setItem('enclaro_onboarding_complete', 'true');
                 app.showScreen('dashboard');
-                app.showToast('¡Bienvenido!', 'success');
+
+                // Personalized Toast
+                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                let welcomeWord = '¡Bienvenido!';
+                if (profile.gender === 'femenino') welcomeWord = '¡Bienvenida!';
+                else if (profile.gender === 'nobinario' || profile.gender === 'otro') welcomeWord = '¡Bienvenide!';
+
+                app.showToast(welcomeWord, 'success');
             },
 
             // ... (Skipping some minor helpers for brevity, critical logic preserved) ...
@@ -1948,6 +1955,12 @@
                 const settingsWelcome = document.getElementById('settings-welcome-text');
                 if (settingsWelcome) {
                     settingsWelcome.innerHTML = `${welcomeWord} a En Claro<br><span style="font-size:0.8em; opacity:0.8">${profile.name}</span>`;
+                }
+
+                // Update Onboarding Title
+                const onboardingTitle = document.getElementById('i18n-onboarding-title');
+                if (onboardingTitle) {
+                    onboardingTitle.textContent = `${welcomeWord} a En Claro`;
                 }
 
                 const introQuestion = document.getElementById('intro-question');
