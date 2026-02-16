@@ -956,7 +956,7 @@
             },
 
             finishLegalOnboarding: () => {
-                app.showScreen('onboarding');
+                app.showScreen('registration');
             },
 
             /**
@@ -1867,7 +1867,7 @@
             if (localStorage.getItem('enclaro_onboarding_complete')) {
                 app.showScreen('dashboard');
             } else {
-                app.showScreen('onboarding');
+                app.showScreen('legal-welcome');
             }
 
             if (window.lucide) lucide.createIcons();
