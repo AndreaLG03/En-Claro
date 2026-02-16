@@ -237,17 +237,17 @@
             </header>
             <div class="card profile-card">
                 <div class="avatar-section">
-                    <div id="reg-avatar-display" class="avatar-large">‘¤</div>
+                    <div id="reg-avatar-display" class="avatar-large">🤖</div>
                     <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 10px;">Elige tu avatar:</p>
                     <div class="avatar-grid">
-                        <span onclick="app.selectRegAvatar('‘¤')">‘¤</span>
-                        <span onclick="app.selectRegAvatar('‘©')">‘©</span>
-                        <span onclick="app.selectRegAvatar('‘¨')">‘¨</span>
-                        <span onclick="app.selectRegAvatar('§‘')">§‘</span>
-                        <span onclick="app.selectRegAvatar('§ ')">§ </span>
-                        <span onclick="app.selectRegAvatar('œ¨')">œ¨</span>
-                        <span onclick="app.selectRegAvatar('Œˆ')">Œˆ</span>
-                        <span onclick="app.selectRegAvatar('Ž¨')">Ž¨</span>
+                        <span onclick="app.selectRegAvatar('🤖')">🤖</span>
+                        <span onclick="app.selectRegAvatar('🧠')">🧠</span>
+                        <span onclick="app.selectRegAvatar('🦊')">🦊</span>
+                        <span onclick="app.selectRegAvatar('🐱')">🐱</span>
+                        <span onclick="app.selectRegAvatar('🚀')">🚀</span>
+                        <span onclick="app.selectRegAvatar('⭐')">⭐</span>
+                        <span onclick="app.selectRegAvatar('🥑')">🥑</span>
+                        <span onclick="app.selectRegAvatar('☕')">☕</span>
                     </div>
                 </div>
 
@@ -957,6 +957,45 @@
 
             finishLegalOnboarding: () => {
                 app.showScreen('registration');
+            },
+
+            selectRegAvatar: (avatar) => {
+                const display = document.getElementById('reg-avatar-display');
+                if (display) display.textContent = avatar;
+                app.tempAvatar = avatar;
+
+                const options = document.querySelectorAll('.avatar-grid span');
+                options.forEach(opt => {
+                    opt.style.transform = opt.textContent === avatar ? 'scale(1.2)' : 'scale(1)';
+                    opt.style.border = opt.textContent === avatar ? '2px solid var(--primary-color)' : 'none';
+                    opt.style.borderRadius = '50%';
+                });
+            },
+
+            completeRegistration: () => {
+                const nameRaw = document.getElementById('reg-name').value;
+                const name = nameRaw ? nameRaw.trim() : '';
+                const surname = (document.getElementById('reg-surname').value || '').trim();
+                const gender = document.getElementById('reg-gender').value;
+                const avatar = app.tempAvatar || (document.getElementById('reg-avatar-display') ? document.getElementById('reg-avatar-display').textContent : '🤖');
+
+                if (!name) {
+                    app.showToast('Por favor, dinos cómo te llamas.', 'error');
+                    return;
+                }
+                if (!gender) {
+                    app.showToast('Por favor, selecciona un género.', 'error');
+                    return;
+                }
+
+                const profile = { name, surname, gender, avatar };
+                localStorage.setItem('enclaro_profile', JSON.stringify(profile));
+
+                // Enable personalized text
+                app.updatePersonalizedText(profile);
+
+                app.showScreen('onboarding');
+                app.showToast('¡Perfil creado!', 'success');
             },
 
             /**
