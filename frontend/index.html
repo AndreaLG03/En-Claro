@@ -1639,6 +1639,7 @@
                                                                                     setTimeout(() => splash.remove(), 500);
                                                                                 }, 1000);
                                                                             }
+                                                                        },
 
                                                                             renderMarkdown: (text) => {
                                                                                 if (!text) return '';
@@ -1809,521 +1810,521 @@
                                                                                                     currentScenarioCharacter: null,
 
                                                                                                         scenarioConfig: {
-                                                                                'Entrevista de Trabajo': { name: 'Sr. Martínez', gender: 'male', role: 'Entrevistador de RRHH serio', is_premium: true },
-                                                                                'Cita Médica': { name: 'Dra. García', gender: 'female', role: 'Doctora empática y profesional', is_premium: true },
-                                                                                'Resolución de Conflictos': { name: 'Carlos', gender: 'male', role: 'Compañero de trabajo testarudo', is_premium: true },
-                                                                                'Charla Casual': { name: 'Sra. Paqui', gender: 'female', role: 'Vecina cotilla pero amable' },
-                                                                                'Encuentro Social': { name: 'Sofía', gender: 'female', role: 'Amiga cercana o cita' },
-                                                                                'Negociación Salarial': { name: 'Director General', gender: 'male', role: 'Jefe exigente pero justo', is_premium: true }
+                    'Entrevista de Trabajo': { name: 'Sr. Martínez', gender: 'male', role: 'Entrevistador de RRHH serio', is_premium: true },
+                    'Cita Médica': { name: 'Dra. García', gender: 'female', role: 'Doctora empática y profesional', is_premium: true },
+                    'Resolución de Conflictos': { name: 'Carlos', gender: 'male', role: 'Compañero de trabajo testarudo', is_premium: true },
+                    'Charla Casual': { name: 'Sra. Paqui', gender: 'female', role: 'Vecina cotilla pero amable' },
+                    'Encuentro Social': { name: 'Sofía', gender: 'female', role: 'Amiga cercana o cita' },
+                    'Negociación Salarial': { name: 'Director General', gender: 'male', role: 'Jefe exigente pero justo', is_premium: true }
+                },
+
+                startRoleplay: (scenario) => {
+                    app.currentScenario = scenario;
+
+                    const config = app.scenarioConfig[scenario];
+                    if (config) {
+                        app.currentScenarioCharacter = config;
+                        app.currentVoiceGender = config.gender;
+                        app.showToast(`Escenario con: ${config.name}`, 'info');
+                    } else {
+                        app.currentScenarioCharacter = null;
+                        app.currentVoiceGender = 'neutral';
+                    }
+
+                    const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                    const userName = profile.name || 'Usuario';
+                    const gender = profile.gender || 'neutral';
+                    let instructions = `Escenario: ${scenario}. \n`;
+                    instructions += `El usuario se llama ${userName}. `;
+                    if (gender === 'femenino') instructions += "Trátala de ella (femenino). ";
+                    else if (gender === 'masculino') instructions += "Trátalo de él (masculino). ";
+                    else if (gender === 'nobinario' || gender === 'otro') instructions += "Trátale con lenguaje neutro (elle/le). ";
+
+                    app.roleplayHistory = [
+                        { role: 'system', content: instructions }
+                    ];
+
+                    document.getElementById('roleplay-selector').style.display = 'none';
+                    document.getElementById('roleplay-session').style.display = 'block';
+                    document.getElementById('chat-container').innerHTML = '';
+                    document.getElementById('roleplay-input').value = '';
+
+                    app.showToast(`Iniciando simulación: ${scenario}`, 'info');
+                    app.sendRoleplayMessage("INICIAR_SESION");
+                },
+
+                    sendRoleplayMessage: async (customMsg = null) => {
+                        const input = document.getElementById('roleplay-input');
+                        const text = customMsg || input.value;
+
+                        if (!text.trim()) return;
+
+                        if (customMsg !== "INICIAR_SESION") {
+                            app.addChatMessage(text, 'user');
+                            input.value = '';
+                            app.roleplayHistory.push({ role: 'user', content: text });
+                        }
+
+                        try {
+                            const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                            const isPremium = app.currentScenarioCharacter && app.currentScenarioCharacter.is_premium;
+
+                            const payload = {
+                                text: JSON.stringify(app.roleplayHistory),
+                                module: 'roleplay',
+                                user_profile: {
+                                    name: profile.name || '',
+                                    gender: profile.gender || ''
+                                },
+                                user_email: profile.email || '',
+                                scenario_context: {
+                                    ...(app.currentScenarioCharacter || {}),
+                                    is_premium: isPremium || false
+                                }
+                            };
+
+                            const response = await fetch(`${app.apiUrl}/analyze`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+
+                            if (!response.ok) {
+                                const errorData = await response.json().catch(() => ({}));
+                                throw new Error(`${response.status}: ${errorData.detail || 'Error en simulador'}`);
+                            }
+
+                            const data = await response.json();
+                            app.addChatMessage(data.result, 'ai');
+                            app.roleplayHistory.push({ role: 'assistant', content: data.result });
+
+                        } catch (error) {
+                            console.error('Roleplay Error:', error);
+                            app.showToast('Error en el simulador.', 'error');
+                            app.addChatMessage('Error de conexión.', 'system');
+                        }
+                    },
+
+                        addChatMessage: (text, sender) => {
+                            const container = document.getElementById('chat-container');
+                            const bubble = document.createElement('div');
+                            bubble.className = `chat-bubble bubble-${sender}`;
+                            bubble.innerHTML = app.renderMarkdown ? app.renderMarkdown(text) : text;
+                            container.appendChild(bubble);
+                            container.scrollTop = container.scrollHeight;
+                            if (sender === 'ai') app.speak(text);
+                        },
+
+                            currentVoiceGender: 'neutral',
+
+                                speak: (text) => {
+                                    if (!window.speechSynthesis) return;
+                                    window.speechSynthesis.cancel();
+
+                                    const utterance = new SpeechSynthesisUtterance(text);
+                                    const langCode = app.currentLanguage === 'es' ? 'es-ES' : 'en-US';
+                                    utterance.lang = langCode;
+
+                                    let targetGender = app.currentVoiceGender;
+                                    if (targetGender === 'neutral') targetGender = app.detectGender(text);
+
+                                    const voice = app.getVoice(targetGender, langCode);
+                                    if (voice) utterance.voice = voice;
+
+                                    window.speechSynthesis.speak(utterance);
+                                },
+
+                                    detectGender: (text) => {
+                                        const lower = text.toLowerCase();
+                                        if (lower.includes('marcos') || lower.includes('juan') || lower.includes('doctor')) return 'male';
+                                        if (lower.includes('sarah') || lower.includes('maría') || lower.includes('doctora')) return 'female';
+                                        return 'neutral';
+                                    },
+
+                                        initVoices: () => {
+                                            let voices = window.speechSynthesis.getVoices();
+                                            if (voices.length === 0) {
+                                                window.speechSynthesis.onvoiceschanged = () => {
+                                                    voices = window.speechSynthesis.getVoices();
+                                                    console.log('Voices loaded');
+                                                };
+                                            }
+                                        },
+
+                                            getVoice: (gender, lang) => {
+                                                const voices = window.speechSynthesis.getVoices();
+                                                const available = voices.filter(v => v.lang.startsWith(lang.split('-')[0]));
+                                                if (!available.length) return null;
+
+                                                // Simple logic for brevity in debug
+                                                return available[0];
+                                            },
+
+                                                endRoleplay: async () => {
+                                                    app.showScreen('loading');
+                                                    try {
+                                                        const transcript = app.roleplayHistory
+                                                            .filter(m => m.role !== 'system')
+                                                            .map(m => `${m.role === 'user' ? 'Tú' : 'IA'}: ${m.content}`)
+                                                            .join('\n');
+
+                                                        const response = await fetch(`${app.apiUrl}/analyze`, {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                text: transcript,
+                                                                module: 'roleplay_feedback'
+                                                            })
+                                                        });
+
+                                                        const data = await response.json();
+                                                        app.displayResult(data.result, 'roleplay');
+                                                        document.getElementById('roleplay-selector').style.display = 'block';
+                                                        document.getElementById('roleplay-session').style.display = 'none';
+
+                                                    } catch (e) {
+                                                        app.showScreen('dashboard');
+                                                        app.showToast('Error al generar feedback.', 'error');
+                                                    }
+                                                },
+
+                                                    setSocialBattery: async (value) => {
+                                                        const input = document.getElementById('social-battery-value');
+                                                        if (input) input.value = value;
+                                                        const options = document.querySelectorAll('.battery-option');
+                                                        options.forEach(opt => {
+                                                            opt.classList.toggle('active', parseInt(opt.getAttribute('data-value')) === value);
+                                                        });
+
+                                                        // Optimistic UI update
+                                                        app.showToast(`Energía: ${value}% saved.`, 'info');
+
+                                                        // Save to backend
+                                                        const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                                                        if (profile.email) {
+                                                            try {
+                                                                await fetch(`${app.apiUrl}/wellbeing`, {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({
+                                                                        user_email: profile.email,
+                                                                        battery_level: value
+                                                                    })
+                                                                });
+                                                            } catch (e) {
+                                                                console.error("Failed to save wellbeing log", e);
+                                                            }
+                                                        }
+                                                    },
+
+                                                        resetOnboarding: () => {
+                                                            if (confirm('¿Quieres volver a ver la introducción?')) {
+                                                                localStorage.removeItem('enclaro_onboarding_complete');
+                                                                window.location.reload();
+                                                            }
+                                                        },
+
+                                                            loadWellbeing: async () => {
+                                                                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                                                                if (!profile.email) {
+                                                                    document.getElementById('wellbeing-insights').innerHTML = '<p>Inicia sesión para ver tus datos.</p>';
+                                                                    return;
+                                                                }
+
+                                                                try {
+                                                                    const response = await fetch(`${app.apiUrl}/wellbeing?email=${encodeURIComponent(profile.email)}`);
+                                                                    if (!response.ok) return;
+                                                                    const data = await response.json();
+
+                                                                    // Prepare data for Chart.js
+                                                                    const labels = data.map(d => new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }));
+                                                                    const values = data.map(d => d.battery_level);
+
+                                                                    const ctx = document.getElementById('wellbeingChart');
+                                                                    if (!ctx) return;
+
+                                                                    // Destroy existing chart if any
+                                                                    if (window.wellbeingChartInstance) {
+                                                                        window.wellbeingChartInstance.destroy();
+                                                                    }
+
+                                                                    window.wellbeingChartInstance = new Chart(ctx, {
+                                                                        type: 'line',
+                                                                        data: {
+                                                                            labels: labels,
+                                                                            datasets: [{
+                                                                                label: 'Nivel de Energía',
+                                                                                data: values,
+                                                                                borderColor: '#3b82f6',
+                                                                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                                                                tension: 0.4,
+                                                                                fill: true,
+                                                                                pointBackgroundColor: values.map(v => v < 40 ? '#ef4444' : (v > 70 ? '#10b981' : '#f59e0b'))
+                                                                            }]
+                                                                        },
+                                                                        options: {
+                                                                            responsive: true,
+                                                                            maintainAspectRatio: false,
+                                                                            scales: {
+                                                                                y: { beginAtZero: true, max: 100 }
+                                                                            }
+                                                                        }
+                                                                    });
+
+                                                                    // Simple Insights Logic
+                                                                    const avg = values.reduce((a, b) => a + b, 0) / values.length || 0;
+                                                                    const insightBox = document.getElementById('wellbeing-insights');
+                                                                    const insightText = document.getElementById('insight-text');
+
+                                                                    insightBox.style.display = 'block';
+                                                                    if (avg < 50) {
+                                                                        insightText.textContent = "Tu energía promedio es baja últimamente. Intenta priorizar el descanso esta semana.";
+                                                                    } else if (values.length > 2 && values[values.length - 1] < values[values.length - 2]) {
+                                                                        insightText.textContent = "Tu energía ha bajado respecto a ayer. Quizás hoy sea un buen día para actividades tranquilas.";
+                                                                    } else {
+                                                                        insightText.textContent = "¡Mantienes un buen nivel de energía! Es un buen momento para afrontar tareas sociales.";
+                                                                    }
+
+                                                                } catch (e) {
+                                                                    console.error("Error loading wellbeing data", e);
+                                                                }
+                                                            },
+
+                                                                completeOnboarding: () => {
+                                                                    localStorage.setItem('enclaro_onboarding_complete', 'true');
+                                                                    app.showScreen('dashboard');
+
+                                                                    // Personalized Toast
+                                                                    const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                                                                    let welcomeWord = '¡Bienvenido!';
+                                                                    if (profile.gender === 'femenino') welcomeWord = '¡Bienvenida!';
+                                                                    else if (profile.gender === 'nobinario' || profile.gender === 'otro') welcomeWord = '¡Bienvenide!';
+
+                                                                    app.showToast(welcomeWord, 'success');
+                                                                },
+
+                                                                    // ... (Skipping some minor helpers for brevity, critical logic preserved) ...
+
+                                                                    toggleSettings: () => {
+                                                                        const menu = document.getElementById('settings-menu');
+                                                                        if (menu) menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+                                                                    },
+
+                                                                        toggleAvatarPicker: () => {
+                                                                            const picker = document.getElementById('avatar-picker');
+                                                                            if (picker) picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
+                                                                        },
+
+                                                                            selectAvatar: (avatar) => {
+                                                                                const display = document.getElementById('current-avatar');
+                                                                                if (display) display.textContent = avatar;
+                                                                                app.tempProfileAvatar = avatar;
+                                                                                app.toggleAvatarPicker();
                                                                             },
 
-                                                                            startRoleplay: (scenario) => {
-                                                                                app.currentScenario = scenario;
+                                                                                saveProfile: () => {
+                                                                                    const name = document.getElementById('profile-name').value;
+                                                                                    const surname = document.getElementById('profile-surname').value;
+                                                                                    const gender = document.getElementById('profile-gender').value;
+                                                                                    const email = document.getElementById('profile-email').value;
 
-                                                                                const config = app.scenarioConfig[scenario];
-                                                                                if (config) {
-                                                                                    app.currentScenarioCharacter = config;
-                                                                                    app.currentVoiceGender = config.gender;
-                                                                                    app.showToast(`Escenario con: ${config.name}`, 'info');
-                                                                                } else {
-                                                                                    app.currentScenarioCharacter = null;
-                                                                                    app.currentVoiceGender = 'neutral';
-                                                                                }
+                                                                                    const display = document.getElementById('current-avatar');
+                                                                                    const avatar = app.tempProfileAvatar || (display ? display.textContent : '🤖');
 
-                                                                                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                                                                                const userName = profile.name || 'Usuario';
-                                                                                const gender = profile.gender || 'neutral';
-                                                                                let instructions = `Escenario: ${scenario}. \n`;
-                                                                                instructions += `El usuario se llama ${userName}. `;
-                                                                                if (gender === 'femenino') instructions += "Trátala de ella (femenino). ";
-                                                                                else if (gender === 'masculino') instructions += "Trátalo de él (masculino). ";
-                                                                                else if (gender === 'nobinario' || gender === 'otro') instructions += "Trátale con lenguaje neutro (elle/le). ";
+                                                                                    const profile = { name, surname, gender, email, avatar };
+                                                                                    localStorage.setItem('enclaro_profile', JSON.stringify(profile));
 
-                                                                                app.roleplayHistory = [
-                                                                                    { role: 'system', content: instructions }
-                                                                                ];
-
-                                                                                document.getElementById('roleplay-selector').style.display = 'none';
-                                                                                document.getElementById('roleplay-session').style.display = 'block';
-                                                                                document.getElementById('chat-container').innerHTML = '';
-                                                                                document.getElementById('roleplay-input').value = '';
-
-                                                                                app.showToast(`Iniciando simulación: ${scenario}`, 'info');
-                                                                                app.sendRoleplayMessage("INICIAR_SESION");
-                                                                            },
-
-                                                                                sendRoleplayMessage: async (customMsg = null) => {
-                                                                                    const input = document.getElementById('roleplay-input');
-                                                                                    const text = customMsg || input.value;
-
-                                                                                    if (!text.trim()) return;
-
-                                                                                    if (customMsg !== "INICIAR_SESION") {
-                                                                                        app.addChatMessage(text, 'user');
-                                                                                        input.value = '';
-                                                                                        app.roleplayHistory.push({ role: 'user', content: text });
-                                                                                    }
-
-                                                                                    try {
-                                                                                        const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                                                                                        const isPremium = app.currentScenarioCharacter && app.currentScenarioCharacter.is_premium;
-
-                                                                                        const payload = {
-                                                                                            text: JSON.stringify(app.roleplayHistory),
-                                                                                            module: 'roleplay',
-                                                                                            user_profile: {
-                                                                                                name: profile.name || '',
-                                                                                                gender: profile.gender || ''
-                                                                                            },
-                                                                                            user_email: profile.email || '',
-                                                                                            scenario_context: {
-                                                                                                ...(app.currentScenarioCharacter || {}),
-                                                                                                is_premium: isPremium || false
-                                                                                            }
-                                                                                        };
-
-                                                                                        const response = await fetch(`${app.apiUrl}/analyze`, {
-                                                                                            method: 'POST',
-                                                                                            headers: { 'Content-Type': 'application/json' },
-                                                                                            body: JSON.stringify(payload)
-                                                                                        });
-
-                                                                                        if (!response.ok) {
-                                                                                            const errorData = await response.json().catch(() => ({}));
-                                                                                            throw new Error(`${response.status}: ${errorData.detail || 'Error en simulador'}`);
-                                                                                        }
-
-                                                                                        const data = await response.json();
-                                                                                        app.addChatMessage(data.result, 'ai');
-                                                                                        app.roleplayHistory.push({ role: 'assistant', content: data.result });
-
-                                                                                    } catch (error) {
-                                                                                        console.error('Roleplay Error:', error);
-                                                                                        app.showToast('Error en el simulador.', 'error');
-                                                                                        app.addChatMessage('Error de conexión.', 'system');
-                                                                                    }
+                                                                                    app.updatePersonalizedText(profile);
+                                                                                    app.showToast('Perfil actualizado', 'success');
                                                                                 },
 
-                                                                                    addChatMessage: (text, sender) => {
-                                                                                        const container = document.getElementById('chat-container');
-                                                                                        const bubble = document.createElement('div');
-                                                                                        bubble.className = `chat-bubble bubble-${sender}`;
-                                                                                        bubble.innerHTML = app.renderMarkdown ? app.renderMarkdown(text) : text;
-                                                                                        container.appendChild(bubble);
-                                                                                        container.scrollTop = container.scrollHeight;
-                                                                                        if (sender === 'ai') app.speak(text);
+                                                                                    loadProfile: () => {
+                                                                                        const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                                                                                        if (profile.name) document.getElementById('profile-name').value = profile.name;
+                                                                                        if (profile.surname) document.getElementById('profile-surname').value = profile.surname;
+                                                                                        if (profile.gender) document.getElementById('profile-gender').value = profile.gender;
+                                                                                        if (profile.email) document.getElementById('profile-email').value = profile.email;
+
+                                                                                        if (profile.avatar) {
+                                                                                            const display = document.getElementById('current-avatar');
+                                                                                            if (display) display.textContent = profile.avatar;
+                                                                                            app.tempProfileAvatar = profile.avatar;
+                                                                                        }
+
+                                                                                        if (profile.googleLinked) {
+                                                                                            const btnGoogle = document.querySelector('button[onclick="app.connectGoogle()"]');
+                                                                                            if (btnGoogle) {
+                                                                                                const emailDisplay = profile.email || 'Conectado';
+                                                                                                btnGoogle.innerHTML = `<i data-lucide="check"></i> <span>${emailDisplay}</span>`;
+                                                                                                btnGoogle.className = 'btn btn-secondary';
+                                                                                                btnGoogle.onclick = app.disconnectGoogle;
+                                                                                            }
+                                                                                        }
                                                                                     },
 
-                                                                                        currentVoiceGender: 'neutral',
+                                                                                        // Google OAuth Configuration
+                                                                                        googleClientId: '106097643504-j883o1a4k5ad28smia4o3sj215k1lqdc.apps.googleusercontent.com',
+                                                                                            tokenClient: null,
 
-                                                                                            speak: (text) => {
-                                                                                                if (!window.speechSynthesis) return;
-                                                                                                window.speechSynthesis.cancel();
-
-                                                                                                const utterance = new SpeechSynthesisUtterance(text);
-                                                                                                const langCode = app.currentLanguage === 'es' ? 'es-ES' : 'en-US';
-                                                                                                utterance.lang = langCode;
-
-                                                                                                let targetGender = app.currentVoiceGender;
-                                                                                                if (targetGender === 'neutral') targetGender = app.detectGender(text);
-
-                                                                                                const voice = app.getVoice(targetGender, langCode);
-                                                                                                if (voice) utterance.voice = voice;
-
-                                                                                                window.speechSynthesis.speak(utterance);
-                                                                                            },
-
-                                                                                                detectGender: (text) => {
-                                                                                                    const lower = text.toLowerCase();
-                                                                                                    if (lower.includes('marcos') || lower.includes('juan') || lower.includes('doctor')) return 'male';
-                                                                                                    if (lower.includes('sarah') || lower.includes('maría') || lower.includes('doctora')) return 'female';
-                                                                                                    return 'neutral';
+                                                                                                initGoogleClient: () => {
+                                                                                                    if (window.google) {
+                                                                                                        app.tokenClient = google.accounts.oauth2.initTokenClient({
+                                                                                                            client_id: app.googleClientId,
+                                                                                                            scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+                                                                                                            callback: app.handleGoogleResponse
+                                                                                                        });
+                                                                                                    } else {
+                                                                                                        // Retry if script not loaded yet
+                                                                                                        setTimeout(app.initGoogleClient, 500);
+                                                                                                    }
                                                                                                 },
 
-                                                                                                    initVoices: () => {
-                                                                                                        let voices = window.speechSynthesis.getVoices();
-                                                                                                        if (voices.length === 0) {
-                                                                                                            window.speechSynthesis.onvoiceschanged = () => {
-                                                                                                                voices = window.speechSynthesis.getVoices();
-                                                                                                                console.log('Voices loaded');
-                                                                                                            };
+                                                                                                    handleGoogleResponse: async (tokenResponse) => {
+                                                                                                        if (tokenResponse.access_token) {
+                                                                                                            try {
+                                                                                                                const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                                                                                                                    headers: {
+                                                                                                                        'Authorization': `Bearer ${tokenResponse.access_token}`
+                                                                                                                    }
+                                                                                                                });
+                                                                                                                const userInfo = await userInfoResponse.json();
+
+                                                                                                                // Update Profile
+                                                                                                                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                                                                                                                profile.googleLinked = true;
+                                                                                                                profile.email = userInfo.email;
+                                                                                                                profile.name = userInfo.given_name || profile.name;
+                                                                                                                profile.surname = userInfo.family_name || profile.surname;
+                                                                                                                if (userInfo.picture) profile.avatarUrl = userInfo.picture; // Store URL if needed
+
+                                                                                                                localStorage.setItem('enclaro_profile', JSON.stringify(profile));
+
+                                                                                                                app.loadProfile();
+                                                                                                                app.showToast(`Conectado como ${userInfo.name}`, 'success');
+
+                                                                                                                // Restore button state
+                                                                                                                const btn = document.querySelector('button[onclick*="app.connectGoogle"]'); // Search by onclick
+                                                                                                                if (btn && btn.innerHTML.includes('spin')) {
+                                                                                                                    // Will be handled by loadProfile, but ensuring just in case
+                                                                                                                }
+
+                                                                                                            } catch (error) {
+                                                                                                                console.error("Error fetching Google user info:", error);
+                                                                                                                app.showToast('Error obteniendo datos de Google', 'error');
+                                                                                                                const btn = document.querySelector('button[onclick="app.connectGoogle()"]');
+                                                                                                                if (btn) btn.innerHTML = '<i data-lucide="log-in"></i> <span>Conectar con Google</span>';
+                                                                                                            }
                                                                                                         }
                                                                                                     },
 
-                                                                                                        getVoice: (gender, lang) => {
-                                                                                                            const voices = window.speechSynthesis.getVoices();
-                                                                                                            const available = voices.filter(v => v.lang.startsWith(lang.split('-')[0]));
-                                                                                                            if (!available.length) return null;
+                                                                                                        connectGoogle: () => {
+                                                                                                            const btn = document.querySelector('button[onclick="app.connectGoogle()"]');
+                                                                                                            if (btn) btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Conectando...';
 
-                                                                                                            // Simple logic for brevity in debug
-                                                                                                            return available[0];
+                                                                                                            if (!app.tokenClient) {
+                                                                                                                app.initGoogleClient();
+                                                                                                            }
+
+                                                                                                            if (app.tokenClient) {
+                                                                                                                // Use requestAccessToken to trigger the popup flow
+                                                                                                                app.tokenClient.requestAccessToken();
+                                                                                                            } else {
+                                                                                                                app.showToast('Iniciando servicios de Google, intenta de nuevo en un segundo...', 'info');
+                                                                                                                if (btn) btn.innerHTML = '<i data-lucide="log-in"></i> <span>Conectar con Google</span>';
+                                                                                                                if (window.lucide) lucide.createIcons();
+                                                                                                            }
                                                                                                         },
 
-                                                                                                            endRoleplay: async () => {
-                                                                                                                app.showScreen('loading');
-                                                                                                                try {
-                                                                                                                    const transcript = app.roleplayHistory
-                                                                                                                        .filter(m => m.role !== 'system')
-                                                                                                                        .map(m => `${m.role === 'user' ? 'Tú' : 'IA'}: ${m.content}`)
-                                                                                                                        .join('\n');
+                                                                                                            disconnectGoogle: () => {
+                                                                                                                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                                                                                                                delete profile.googleLinked;
+                                                                                                                // Optional: Clear email if you want, but maybe keep it
+                                                                                                                // delete profile.email; 
+                                                                                                                localStorage.setItem('enclaro_profile', JSON.stringify(profile));
 
-                                                                                                                    const response = await fetch(`${app.apiUrl}/analyze`, {
-                                                                                                                        method: 'POST',
-                                                                                                                        headers: { 'Content-Type': 'application/json' },
-                                                                                                                        body: JSON.stringify({
-                                                                                                                            text: transcript,
-                                                                                                                            module: 'roleplay_feedback'
-                                                                                                                        })
-                                                                                                                    });
-
-                                                                                                                    const data = await response.json();
-                                                                                                                    app.displayResult(data.result, 'roleplay');
-                                                                                                                    document.getElementById('roleplay-selector').style.display = 'block';
-                                                                                                                    document.getElementById('roleplay-session').style.display = 'none';
-
-                                                                                                                } catch (e) {
-                                                                                                                    app.showScreen('dashboard');
-                                                                                                                    app.showToast('Error al generar feedback.', 'error');
+                                                                                                                const btn = document.querySelector('button[onclick*="app.disconnectGoogle"]');
+                                                                                                                if (btn) {
+                                                                                                                    btn.innerHTML = '<i data-lucide="log-in"></i> <span>Conectar con Google</span>';
+                                                                                                                    btn.className = 'btn btn-secondary';
+                                                                                                                    btn.setAttribute('onclick', 'app.connectGoogle()');
                                                                                                                 }
+
+                                                                                                                // Revoke token if we had one stored (we don't store access token persistently here for simplicity)
+                                                                                                                if (window.google && profile.email) {
+                                                                                                                    google.accounts.id.revoke(profile.email, done => {
+                                                                                                                        console.log('Consent revoked');
+                                                                                                                    });
+                                                                                                                }
+
+                                                                                                                app.showToast('Cuenta desvinculada', 'info');
+                                                                                                                if (window.lucide) lucide.createIcons();
                                                                                                             },
 
-                                                                                                                setSocialBattery: async (value) => {
-                                                                                                                    const input = document.getElementById('social-battery-value');
-                                                                                                                    if (input) input.value = value;
-                                                                                                                    const options = document.querySelectorAll('.battery-option');
-                                                                                                                    options.forEach(opt => {
-                                                                                                                        opt.classList.toggle('active', parseInt(opt.getAttribute('data-value')) === value);
-                                                                                                                    });
+                                                                                                                updatePersonalizedText: (profile) => {
+                                                                                                                    if (!profile) profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                                                                                                                    if (!profile.name) return;
 
-                                                                                                                    // Optimistic UI update
-                                                                                                                    app.showToast(`Energía: ${value}% saved.`, 'info');
+                                                                                                                    let welcomeWord = 'Bienvenido';
+                                                                                                                    if (profile.gender === 'femenino') welcomeWord = 'Bienvenida';
+                                                                                                                    else if (profile.gender === 'nobinario' || profile.gender === 'otro') welcomeWord = 'Bienvenide';
 
-                                                                                                                    // Save to backend
-                                                                                                                    const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                                                                                                                    if (profile.email) {
-                                                                                                                        try {
-                                                                                                                            await fetch(`${app.apiUrl}/wellbeing`, {
-                                                                                                                                method: 'POST',
-                                                                                                                                headers: { 'Content-Type': 'application/json' },
-                                                                                                                                body: JSON.stringify({
-                                                                                                                                    user_email: profile.email,
-                                                                                                                                    battery_level: value
-                                                                                                                                })
-                                                                                                                            });
-                                                                                                                        } catch (e) {
-                                                                                                                            console.error("Failed to save wellbeing log", e);
-                                                                                                                        }
+                                                                                                                    const settingsWelcome = document.getElementById('settings-welcome-text');
+                                                                                                                    if (settingsWelcome) {
+                                                                                                                        settingsWelcome.innerHTML = `${welcomeWord} a En Claro<br><span style="font-size:0.8em; opacity:0.8">${profile.name}</span>`;
+                                                                                                                    }
+
+                                                                                                                    // Update Onboarding Title
+                                                                                                                    const onboardingTitle = document.getElementById('i18n-onboarding-title');
+                                                                                                                    if (onboardingTitle) {
+                                                                                                                        onboardingTitle.textContent = `${welcomeWord} a En Claro`;
+                                                                                                                    }
+
+                                                                                                                    const introQuestion = document.getElementById('intro-question');
+                                                                                                                    if (introQuestion) {
+                                                                                                                        introQuestion.textContent = `¿Qué quieres hacer ahora, ${profile.name}?`;
                                                                                                                     }
                                                                                                                 },
 
-                                                                                                                    resetOnboarding: () => {
-                                                                                                                        if (confirm('¿Quieres volver a ver la introducción?')) {
-                                                                                                                            localStorage.removeItem('enclaro_onboarding_complete');
-                                                                                                                            window.location.reload();
-                                                                                                                        }
-                                                                                                                    },
+                                                                                                                    checkAuth: async () => {
+                                                                                                                        // Placeholder
+                                                                                                                    }
+            };
 
-                                                                                                                        loadWellbeing: async () => {
-                                                                                                                            const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                                                                                                                            if (!profile.email) {
-                                                                                                                                document.getElementById('wellbeing-insights').innerHTML = '<p>Inicia sesión para ver tus datos.</p>';
-                                                                                                                                return;
-                                                                                                                            }
-
-                                                                                                                            try {
-                                                                                                                                const response = await fetch(`${app.apiUrl}/wellbeing?email=${encodeURIComponent(profile.email)}`);
-                                                                                                                                if (!response.ok) return;
-                                                                                                                                const data = await response.json();
-
-                                                                                                                                // Prepare data for Chart.js
-                                                                                                                                const labels = data.map(d => new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }));
-                                                                                                                                const values = data.map(d => d.battery_level);
-
-                                                                                                                                const ctx = document.getElementById('wellbeingChart');
-                                                                                                                                if (!ctx) return;
-
-                                                                                                                                // Destroy existing chart if any
-                                                                                                                                if (window.wellbeingChartInstance) {
-                                                                                                                                    window.wellbeingChartInstance.destroy();
-                                                                                                                                }
-
-                                                                                                                                window.wellbeingChartInstance = new Chart(ctx, {
-                                                                                                                                    type: 'line',
-                                                                                                                                    data: {
-                                                                                                                                        labels: labels,
-                                                                                                                                        datasets: [{
-                                                                                                                                            label: 'Nivel de Energía',
-                                                                                                                                            data: values,
-                                                                                                                                            borderColor: '#3b82f6',
-                                                                                                                                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                                                                                                                            tension: 0.4,
-                                                                                                                                            fill: true,
-                                                                                                                                            pointBackgroundColor: values.map(v => v < 40 ? '#ef4444' : (v > 70 ? '#10b981' : '#f59e0b'))
-                                                                                                                                        }]
-                                                                                                                                    },
-                                                                                                                                    options: {
-                                                                                                                                        responsive: true,
-                                                                                                                                        maintainAspectRatio: false,
-                                                                                                                                        scales: {
-                                                                                                                                            y: { beginAtZero: true, max: 100 }
-                                                                                                                                        }
-                                                                                                                                    }
-                                                                                                                                });
-
-                                                                                                                                // Simple Insights Logic
-                                                                                                                                const avg = values.reduce((a, b) => a + b, 0) / values.length || 0;
-                                                                                                                                const insightBox = document.getElementById('wellbeing-insights');
-                                                                                                                                const insightText = document.getElementById('insight-text');
-
-                                                                                                                                insightBox.style.display = 'block';
-                                                                                                                                if (avg < 50) {
-                                                                                                                                    insightText.textContent = "Tu energía promedio es baja últimamente. Intenta priorizar el descanso esta semana.";
-                                                                                                                                } else if (values.length > 2 && values[values.length - 1] < values[values.length - 2]) {
-                                                                                                                                    insightText.textContent = "Tu energía ha bajado respecto a ayer. Quizás hoy sea un buen día para actividades tranquilas.";
-                                                                                                                                } else {
-                                                                                                                                    insightText.textContent = "¡Mantienes un buen nivel de energía! Es un buen momento para afrontar tareas sociales.";
-                                                                                                                                }
-
-                                                                                                                            } catch (e) {
-                                                                                                                                console.error("Error loading wellbeing data", e);
-                                                                                                                            }
-                                                                                                                        },
-
-                                                                                                                            completeOnboarding: () => {
-                                                                                                                                localStorage.setItem('enclaro_onboarding_complete', 'true');
-                                                                                                                                app.showScreen('dashboard');
-
-                                                                                                                                // Personalized Toast
-                                                                                                                                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                                                                                                                                let welcomeWord = '¡Bienvenido!';
-                                                                                                                                if (profile.gender === 'femenino') welcomeWord = '¡Bienvenida!';
-                                                                                                                                else if (profile.gender === 'nobinario' || profile.gender === 'otro') welcomeWord = '¡Bienvenide!';
-
-                                                                                                                                app.showToast(welcomeWord, 'success');
-                                                                                                                            },
-
-                                                                                                                                // ... (Skipping some minor helpers for brevity, critical logic preserved) ...
-
-                                                                                                                                toggleSettings: () => {
-                                                                                                                                    const menu = document.getElementById('settings-menu');
-                                                                                                                                    if (menu) menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
-                                                                                                                                },
-
-                                                                                                                                    toggleAvatarPicker: () => {
-                                                                                                                                        const picker = document.getElementById('avatar-picker');
-                                                                                                                                        if (picker) picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
-                                                                                                                                    },
-
-                                                                                                                                        selectAvatar: (avatar) => {
-                                                                                                                                            const display = document.getElementById('current-avatar');
-                                                                                                                                            if (display) display.textContent = avatar;
-                                                                                                                                            app.tempProfileAvatar = avatar;
-                                                                                                                                            app.toggleAvatarPicker();
-                                                                                                                                        },
-
-                                                                                                                                            saveProfile: () => {
-                                                                                                                                                const name = document.getElementById('profile-name').value;
-                                                                                                                                                const surname = document.getElementById('profile-surname').value;
-                                                                                                                                                const gender = document.getElementById('profile-gender').value;
-                                                                                                                                                const email = document.getElementById('profile-email').value;
-
-                                                                                                                                                const display = document.getElementById('current-avatar');
-                                                                                                                                                const avatar = app.tempProfileAvatar || (display ? display.textContent : '🤖');
-
-                                                                                                                                                const profile = { name, surname, gender, email, avatar };
-                                                                                                                                                localStorage.setItem('enclaro_profile', JSON.stringify(profile));
-
-                                                                                                                                                app.updatePersonalizedText(profile);
-                                                                                                                                                app.showToast('Perfil actualizado', 'success');
-                                                                                                                                            },
-
-                                                                                                                                                loadProfile: () => {
-                                                                                                                                                    const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                                                                                                                                                    if (profile.name) document.getElementById('profile-name').value = profile.name;
-                                                                                                                                                    if (profile.surname) document.getElementById('profile-surname').value = profile.surname;
-                                                                                                                                                    if (profile.gender) document.getElementById('profile-gender').value = profile.gender;
-                                                                                                                                                    if (profile.email) document.getElementById('profile-email').value = profile.email;
-
-                                                                                                                                                    if (profile.avatar) {
-                                                                                                                                                        const display = document.getElementById('current-avatar');
-                                                                                                                                                        if (display) display.textContent = profile.avatar;
-                                                                                                                                                        app.tempProfileAvatar = profile.avatar;
-                                                                                                                                                    }
-
-                                                                                                                                                    if (profile.googleLinked) {
-                                                                                                                                                        const btnGoogle = document.querySelector('button[onclick="app.connectGoogle()"]');
-                                                                                                                                                        if (btnGoogle) {
-                                                                                                                                                            const emailDisplay = profile.email || 'Conectado';
-                                                                                                                                                            btnGoogle.innerHTML = `<i data-lucide="check"></i> <span>${emailDisplay}</span>`;
-                                                                                                                                                            btnGoogle.className = 'btn btn-secondary';
-                                                                                                                                                            btnGoogle.onclick = app.disconnectGoogle;
-                                                                                                                                                        }
-                                                                                                                                                    }
-                                                                                                                                                },
-
-                                                                                                                                                    // Google OAuth Configuration
-                                                                                                                                                    googleClientId: '106097643504-j883o1a4k5ad28smia4o3sj215k1lqdc.apps.googleusercontent.com',
-                                                                                                                                                        tokenClient: null,
-
-                                                                                                                                                            initGoogleClient: () => {
-                                                                                                                                                                if (window.google) {
-                                                                                                                                                                    app.tokenClient = google.accounts.oauth2.initTokenClient({
-                                                                                                                                                                        client_id: app.googleClientId,
-                                                                                                                                                                        scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
-                                                                                                                                                                        callback: app.handleGoogleResponse
-                                                                                                                                                                    });
-                                                                                                                                                                } else {
-                                                                                                                                                                    // Retry if script not loaded yet
-                                                                                                                                                                    setTimeout(app.initGoogleClient, 500);
-                                                                                                                                                                }
-                                                                                                                                                            },
-
-                                                                                                                                                                handleGoogleResponse: async (tokenResponse) => {
-                                                                                                                                                                    if (tokenResponse.access_token) {
-                                                                                                                                                                        try {
-                                                                                                                                                                            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                                                                                                                                                                                headers: {
-                                                                                                                                                                                    'Authorization': `Bearer ${tokenResponse.access_token}`
-                                                                                                                                                                                }
-                                                                                                                                                                            });
-                                                                                                                                                                            const userInfo = await userInfoResponse.json();
-
-                                                                                                                                                                            // Update Profile
-                                                                                                                                                                            const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                                                                                                                                                                            profile.googleLinked = true;
-                                                                                                                                                                            profile.email = userInfo.email;
-                                                                                                                                                                            profile.name = userInfo.given_name || profile.name;
-                                                                                                                                                                            profile.surname = userInfo.family_name || profile.surname;
-                                                                                                                                                                            if (userInfo.picture) profile.avatarUrl = userInfo.picture; // Store URL if needed
-
-                                                                                                                                                                            localStorage.setItem('enclaro_profile', JSON.stringify(profile));
-
-                                                                                                                                                                            app.loadProfile();
-                                                                                                                                                                            app.showToast(`Conectado como ${userInfo.name}`, 'success');
-
-                                                                                                                                                                            // Restore button state
-                                                                                                                                                                            const btn = document.querySelector('button[onclick*="app.connectGoogle"]'); // Search by onclick
-                                                                                                                                                                            if (btn && btn.innerHTML.includes('spin')) {
-                                                                                                                                                                                // Will be handled by loadProfile, but ensuring just in case
-                                                                                                                                                                            }
-
-                                                                                                                                                                        } catch (error) {
-                                                                                                                                                                            console.error("Error fetching Google user info:", error);
-                                                                                                                                                                            app.showToast('Error obteniendo datos de Google', 'error');
-                                                                                                                                                                            const btn = document.querySelector('button[onclick="app.connectGoogle()"]');
-                                                                                                                                                                            if (btn) btn.innerHTML = '<i data-lucide="log-in"></i> <span>Conectar con Google</span>';
-                                                                                                                                                                        }
-                                                                                                                                                                    }
-                                                                                                                                                                },
-
-                                                                                                                                                                    connectGoogle: () => {
-                                                                                                                                                                        const btn = document.querySelector('button[onclick="app.connectGoogle()"]');
-                                                                                                                                                                        if (btn) btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Conectando...';
-
-                                                                                                                                                                        if (!app.tokenClient) {
-                                                                                                                                                                            app.initGoogleClient();
-                                                                                                                                                                        }
-
-                                                                                                                                                                        if (app.tokenClient) {
-                                                                                                                                                                            // Use requestAccessToken to trigger the popup flow
-                                                                                                                                                                            app.tokenClient.requestAccessToken();
-                                                                                                                                                                        } else {
-                                                                                                                                                                            app.showToast('Iniciando servicios de Google, intenta de nuevo en un segundo...', 'info');
-                                                                                                                                                                            if (btn) btn.innerHTML = '<i data-lucide="log-in"></i> <span>Conectar con Google</span>';
-                                                                                                                                                                            if (window.lucide) lucide.createIcons();
-                                                                                                                                                                        }
-                                                                                                                                                                    },
-
-                                                                                                                                                                        disconnectGoogle: () => {
-                                                                                                                                                                            const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                                                                                                                                                                            delete profile.googleLinked;
-                                                                                                                                                                            // Optional: Clear email if you want, but maybe keep it
-                                                                                                                                                                            // delete profile.email; 
-                                                                                                                                                                            localStorage.setItem('enclaro_profile', JSON.stringify(profile));
-
-                                                                                                                                                                            const btn = document.querySelector('button[onclick*="app.disconnectGoogle"]');
-                                                                                                                                                                            if (btn) {
-                                                                                                                                                                                btn.innerHTML = '<i data-lucide="log-in"></i> <span>Conectar con Google</span>';
-                                                                                                                                                                                btn.className = 'btn btn-secondary';
-                                                                                                                                                                                btn.setAttribute('onclick', 'app.connectGoogle()');
-                                                                                                                                                                            }
-
-                                                                                                                                                                            // Revoke token if we had one stored (we don't store access token persistently here for simplicity)
-                                                                                                                                                                            if (window.google && profile.email) {
-                                                                                                                                                                                google.accounts.id.revoke(profile.email, done => {
-                                                                                                                                                                                    console.log('Consent revoked');
-                                                                                                                                                                                });
-                                                                                                                                                                            }
-
-                                                                                                                                                                            app.showToast('Cuenta desvinculada', 'info');
-                                                                                                                                                                            if (window.lucide) lucide.createIcons();
-                                                                                                                                                                        },
-
-                                                                                                                                                                            updatePersonalizedText: (profile) => {
-                                                                                                                                                                                if (!profile) profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                                                                                                                                                                                if (!profile.name) return;
-
-                                                                                                                                                                                let welcomeWord = 'Bienvenido';
-                                                                                                                                                                                if (profile.gender === 'femenino') welcomeWord = 'Bienvenida';
-                                                                                                                                                                                else if (profile.gender === 'nobinario' || profile.gender === 'otro') welcomeWord = 'Bienvenide';
-
-                                                                                                                                                                                const settingsWelcome = document.getElementById('settings-welcome-text');
-                                                                                                                                                                                if (settingsWelcome) {
-                                                                                                                                                                                    settingsWelcome.innerHTML = `${welcomeWord} a En Claro<br><span style="font-size:0.8em; opacity:0.8">${profile.name}</span>`;
-                                                                                                                                                                                }
-
-                                                                                                                                                                                // Update Onboarding Title
-                                                                                                                                                                                const onboardingTitle = document.getElementById('i18n-onboarding-title');
-                                                                                                                                                                                if (onboardingTitle) {
-                                                                                                                                                                                    onboardingTitle.textContent = `${welcomeWord} a En Claro`;
-                                                                                                                                                                                }
-
-                                                                                                                                                                                const introQuestion = document.getElementById('intro-question');
-                                                                                                                                                                                if (introQuestion) {
-                                                                                                                                                                                    introQuestion.textContent = `¿Qué quieres hacer ahora, ${profile.name}?`;
-                                                                                                                                                                                }
-                                                                                                                                                                            },
-
-                                                                                                                                                                                checkAuth: async () => {
-                                                                                                                                                                                    // Placeholder
-                                                                                                                                                                                }
-                                                                        };
-
-                document.addEventListener('DOMContentLoaded', () => {
-                    // We use app.init() if it exists, or duplicate the logic here if init was lost.
-                    // Based on code inspection, app.init was defined around line 1330.
-                    // We must ensure it's called.
-                    if (app.init) {
-                        app.init();
-                    } else {
-                        console.error("Critical Error: app.init is missing! Defining fallback init.");
-                        // Fallback init
-                        const splash = document.getElementById('splash-screen');
-                        if (splash) {
-                            setTimeout(() => {
-                                splash.style.opacity = '0';
-                                setTimeout(() => splash.remove(), 500);
-                            }, 1500);
-                        }
-
-                        const savedProfile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                        if (localStorage.getItem('enclaro_onboarding_complete')) {
-                            app.showScreen('dashboard');
-                            if (savedProfile.name) app.updatePersonalizedText(savedProfile);
-                        } else {
-                            app.showScreen('legal-welcome');
-                        }
-
-                        if (window.lucide) lucide.createIcons();
-
-                        // Attach event listeners manually if init is gone
-                        const btnOnboard = document.getElementById('btn-onboard');
-                        if (btnOnboard) btnOnboard.onclick = app.completeOnboarding;
+            document.addEventListener('DOMContentLoaded', () => {
+                // We use app.init() if it exists, or duplicate the logic here if init was lost.
+                // Based on code inspection, app.init was defined around line 1330.
+                // We must ensure it's called.
+                if (app.init) {
+                    app.init();
+                } else {
+                    console.error("Critical Error: app.init is missing! Defining fallback init.");
+                    // Fallback init
+                    const splash = document.getElementById('splash-screen');
+                    if (splash) {
+                        setTimeout(() => {
+                            splash.style.opacity = '0';
+                            setTimeout(() => splash.remove(), 500);
+                        }, 1500);
                     }
-                });
 
-                // Global Export
-                window.app = app;
+                    const savedProfile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                    if (localStorage.getItem('enclaro_onboarding_complete')) {
+                        app.showScreen('dashboard');
+                        if (savedProfile.name) app.updatePersonalizedText(savedProfile);
+                    } else {
+                        app.showScreen('legal-welcome');
+                    }
+
+                    if (window.lucide) lucide.createIcons();
+
+                    // Attach event listeners manually if init is gone
+                    const btnOnboard = document.getElementById('btn-onboard');
+                    if (btnOnboard) btnOnboard.onclick = app.completeOnboarding;
+                }
+            });
+
+            // Global Export
+            window.app = app;
 
     </script>
 </body>
