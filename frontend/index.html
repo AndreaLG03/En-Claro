@@ -2080,28 +2080,41 @@
                                                                                                                 },
 
                                                                                                                     checkAuth: async () => {
-                                                                                                                        // ... (Auth check simplified)
+                                                                                                                        // Placeholder
                                                                                                                     }
             };
 
             document.addEventListener('DOMContentLoaded', () => {
-                app.initErrorHandler();
-
-                // Quick Init Logic
-                // Init Personalization
-                const savedProfile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                if (savedProfile.name) {
-                    app.updatePersonalizedText(savedProfile);
-                }
-
-                if (localStorage.getItem('enclaro_onboarding_complete')) {
-                    app.showScreen('dashboard');
+                // We use app.init() if it exists, or duplicate the logic here if init was lost.
+                // Based on code inspection, app.init was defined around line 1330.
+                // We must ensure it's called.
+                if (app.init) {
+                    app.init();
                 } else {
-                    app.showScreen('legal-welcome');
-                }
+                    console.error("Critical Error: app.init is missing! Defining fallback init.");
+                    // Fallback init
+                    const splash = document.getElementById('splash-screen');
+                    if (splash) {
+                        setTimeout(() => {
+                            splash.style.opacity = '0';
+                            setTimeout(() => splash.remove(), 500);
+                        }, 1500);
+                    }
 
-                if (window.lucide) lucide.createIcons();
-                console.log('App Initialized Cleanly');
+                    const savedProfile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                    if (localStorage.getItem('enclaro_onboarding_complete')) {
+                        app.showScreen('dashboard');
+                        if (savedProfile.name) app.updatePersonalizedText(savedProfile);
+                    } else {
+                        app.showScreen('legal-welcome');
+                    }
+
+                    if (window.lucide) lucide.createIcons();
+
+                    // Attach event listeners manually if init is gone
+                    const btnOnboard = document.getElementById('btn-onboard');
+                    if (btnOnboard) btnOnboard.onclick = app.completeOnboarding;
+                }
             });
 
             // Global Export
