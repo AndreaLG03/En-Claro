@@ -2297,34 +2297,16 @@
                 if (app.init) {
                     app.init();
                 } else {
-                    console.error("Critical Error: app.init is missing! Defining fallback init.");
-                    // Fallback init
-                    const splash = document.getElementById('splash-screen');
-                    if (splash) {
-                        setTimeout(() => {
-                            splash.style.opacity = '0';
-                            setTimeout(() => splash.remove(), 500);
-                        }, 1500);
-                    }
+                };
 
-                    const savedProfile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
-                    if (localStorage.getItem('enclaro_onboarding_complete')) {
-                        app.showScreen('dashboard');
-                        if (savedProfile.name) app.updatePersonalizedText(savedProfile);
-                    } else {
-                        app.showScreen('legal-welcome');
-                    }
-
+                // Initialize App
+                document.addEventListener('DOMContentLoaded', () => {
+                    if (app.init) app.init();
                     if (window.lucide) lucide.createIcons();
+                });
 
-                    // Attach event listeners manually if init is gone
-                    const btnOnboard = document.getElementById('btn-onboard');
-                    if (btnOnboard) btnOnboard.onclick = app.completeOnboarding;
-                }
-            });
-
-            // Global Export
-            window.app = app;
+                // Global Export
+                window.app = app;
 
     </script>
 </body>
