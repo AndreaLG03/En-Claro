@@ -1023,6 +1023,10 @@
                         app.loadWellbeing();
                     }
 
+                    if (screenId === 'profile') {
+                        app.loadProfile();
+                    }
+
                     if (window.lucide) {
                         lucide.createIcons();
                     }
@@ -1881,16 +1885,59 @@
                 if (menu) menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
             },
 
+            toggleAvatarPicker: () => {
+                const picker = document.getElementById('avatar-picker');
+                if (picker) picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
+            },
+
+            selectAvatar: (avatar) => {
+                const display = document.getElementById('current-avatar');
+                if (display) display.textContent = avatar;
+                app.tempProfileAvatar = avatar;
+                app.toggleAvatarPicker();
+            },
+
+            saveProfile: () => {
+                const name = document.getElementById('profile-name').value;
+                const surname = document.getElementById('profile-surname').value;
+                const gender = document.getElementById('profile-gender').value;
+                const email = document.getElementById('profile-email').value;
+
+                const display = document.getElementById('current-avatar');
+                const avatar = app.tempProfileAvatar || (display ? display.textContent : '🤖');
+
+                const profile = { name, surname, gender, email, avatar };
+                localStorage.setItem('enclaro_profile', JSON.stringify(profile));
+
+                app.updatePersonalizedText(profile);
+                app.showToast('Perfil actualizado', 'success');
+            },
+
+            loadProfile: () => {
+                const profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                if (profile.name) document.getElementById('profile-name').value = profile.name;
+                if (profile.surname) document.getElementById('profile-surname').value = profile.surname;
+                if (profile.gender) document.getElementById('profile-gender').value = profile.gender;
+                if (profile.email) document.getElementById('profile-email').value = profile.email;
+
+                if (profile.avatar) {
+                    const display = document.getElementById('current-avatar');
+                    if (display) display.textContent = profile.avatar;
+                    app.tempProfileAvatar = profile.avatar;
+                }
+            },
+
             updatePersonalizedText: (profile) => {
-                if (!profile) return;
-                const welcomeText = `Hola, ${profile.name}`;
+                if (!profile) profile = JSON.parse(localStorage.getItem('enclaro_profile') || '{}');
+                if (!profile.name) return;
+
+                let welcomeWord = 'Bienvenido';
+                if (profile.gender === 'femenino') welcomeWord = 'Bienvenida';
+                else if (profile.gender === 'nobinario' || profile.gender === 'otro') welcomeWord = 'Bienvenide';
 
                 const settingsWelcome = document.getElementById('settings-welcome-text');
-                if (settingsWelcome) settingsWelcome.textContent = welcomeText;
-
-                const dashboardHeader = document.querySelector('#screen-dashboard header');
-                if (dashboardHeader) {
-                    // header updates
+                if (settingsWelcome) {
+                    settingsWelcome.innerHTML = `${welcomeWord} a En Claro<br><span style="font-size:0.8em; opacity:0.8">${profile.name}</span>`;
                 }
             },
 
