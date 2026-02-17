@@ -2017,6 +2017,7 @@
                                                         }
                                                     },
 
+
                                                         resetOnboarding: () => {
                                                             if (confirm('¿Quieres volver a ver la introducción?')) {
                                                                 localStorage.removeItem('enclaro_onboarding_complete');
@@ -2290,23 +2291,20 @@
                                                                                                                     }
             };
 
+            // Global Export
+            window.app = app;
+
+            // Initialize App
             document.addEventListener('DOMContentLoaded', () => {
-                // We use app.init() if it exists, or duplicate the logic here if init was lost.
-                // Based on code inspection, app.init was defined around line 1330.
-                // We must ensure it's called.
+                console.log("APP INITIALIZING - VERSION: 1.0.2 - FIXED LISTENER");
                 if (app.init) {
                     app.init();
                 } else {
-                };
+                    console.error("Critical: app.init is undefined!");
+                }
 
-                // Initialize App
-                document.addEventListener('DOMContentLoaded', () => {
-                    if (app.init) app.init();
-                    if (window.lucide) lucide.createIcons();
-                });
-
-                // Global Export
-                window.app = app;
+                if (window.lucide) lucide.createIcons();
+            });
 
     </script>
 </body>
